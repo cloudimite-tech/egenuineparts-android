@@ -1,0 +1,215 @@
+// Resets the database and loads demo data. DESTRUCTIVE — wipes real users
+// and orders too. To only refresh categories on a live database, use
+//   npm run db:categories
+import 'dotenv/config';
+import * as bcrypt from 'bcryptjs';
+import { sql } from 'drizzle-orm';
+import { db, queryClient } from './client';
+import {
+  categories,
+  conversations,
+  messages,
+  orderItems,
+  orders,
+  productFitments,
+  products,
+  reviews,
+  stores,
+  users,
+  vehicles,
+  wishlistItems,
+} from './schema';
+import { CATEGORY_TREE } from './category-tree';
+
+type Fit = [make: string, model: string, from: number, to: number];
+
+async function main() {
+  console.log('Resetting and seeding Genuine Parts.lk…');
+  await db.execute(sql`TRUNCATE TABLE
+    messages, conversations, reviews, wishlist_items, order_items, orders, cart_items,
+    product_images, product_fitments, products, categories, vehicles, stores, users
+    RESTART IDENTITY CASCADE`);
+
+  const passwordHash = await bcrypt.hash('password123', 10);
+  const user = async (fullName: string, email: string, role: 'BUYER' | 'SELLER', phone?: string) =>
+    (await db.insert(users).values({ fullName, email, phone, passwordHash, role }).returning())[0];
+
+  // ---- people ----
+  const kasun = await user('Kasun Perera', 'buyer@genuineparts.lk', 'BUYER', '+94771234567');
+  const rwan = await user('Rwan Silva', 'rwan@example.lk', 'BUYER');
+  const dilani = await user('Dilani Peiris', 'dilani@example.lk', 'BUYER');
+  const cahOwner = await user('Colombo Auto Hub', 'seller@genuineparts.lk', 'SELLER', '+94711234567');
+  const kmsOwner = await user('Kandy Motor Spares', 'kandy@genuineparts.lk', 'SELLER');
+  const llcOwner = await user('Lanka Lube Centre', 'lubecentre@genuineparts.lk', 'SELLER');
+
+  await db.insert(vehicles).values([
+    { userId: kasun.id, make: 'Toyota', model: 'Axio', year: 2016, engine: '1.5 L', chassisCode: 'NZE161', isDefault: true },
+    { userId: kasun.id, make: 'Honda', model: 'Vezel', year: 2018, engine: '1.5 L Hybrid', chassisCode: 'RU3' },
+  ]);
+
+  // ---- stores ----
+  const store = async (ownerId: string, name: string, slug: string, bio: string, shipsFrom: string, returnsPolicy: string) =>
+    (await db.insert(stores).values({ ownerId, name, slug, bio, shipsFrom, returnsPolicy, verified: true }).returning())[0];
+  const cah = await store(cahOwner.id, 'Colombo Auto Hub', 'colombo-auto-hub',
+    'Genuine Toyota, Honda and Nissan parts since 2019.', 'Colombo 10', '7 days, unused parts');
+  const kms = await store(kmsOwner.id, 'Kandy Motor Spares', 'kandy-motor-spares',
+    'Brake, suspension, gearbox and engine specialists for Japanese cars.', 'Kandy', '7 days, unused parts');
+  const llc = await store(llcOwner.id, 'Lanka Lube Centre', 'lanka-lube-centre',
+    'Lubricants, coolants, filters and accessories — Mobil, Castrol, Shell and more.', 'Nugegoda', '3 days, sealed only');
+
+  // ---- categories (shared definition with `npm run db:categories`) ----
+  const sub: Record<string, string> = {};
+  for (const parent of CATEGORY_TREE) {
+    const [p] = await db.insert(categories).values({ name: parent.name, slug: parent.slug, icon: parent.icon }).returning();
+    for (const child of parent.children) {
+      const [c] = await db.insert(categories).values({ name: child.name, slug: child.slug, icon: parent.icon, parentId: p.id }).returning();
+      sub[child.slug] = c.id;
+    }
+  }
+
+  // ---- products ----
+  const AXIO: Fit = ['Toyota', 'Axio', 2012, 2019];
+  const FIELDER: Fit = ['Toyota', 'Fielder', 2012, 2019];
+  const PREMIO: Fit = ['Toyota', 'Premio', 2007, 2020];
+  const AQUA: Fit = ['Toyota', 'Aqua', 2012, 2021];
+  const VEZEL: Fit = ['Honda', 'Vezel', 2014, 2021];
+  const FIT: Fit = ['Honda', 'Fit', 2013, 2020];
+  const WAGONR: Fit = ['Suzuki', 'Wagon R', 2014, 2022];
+
+  const inDays = (d: number) => new Date(Date.now() + d * 86400000);
+
+  const product = async (
+    storeId: string, categorySlug: string, brand: string, title: string, price: number,
+    opts: { currency?: 'LKR' | 'USD'; compareAt?: number; sale?: [price: number, days: number]; partNumber?: string; stock?: number; warranty?: number; condition?: 'NEW' | 'USED' | 'REFURBISHED'; description?: string; fits?: Fit[] } = {},
+  ) => {
+    if (!sub[categorySlug]) throw new Error(`Unknown category ${categorySlug}`);
+    const [p] = await db.insert(products).values({
+      storeId, categoryId: sub[categorySlug], brand, title, currency: opts.currency ?? 'LKR',
+      price: String(price), compareAtPrice: opts.compareAt ? String(opts.compareAt) : null,
+      salePrice: opts.sale ? String(opts.sale[0]) : null, saleEndsAt: opts.sale ? inDays(opts.sale[1]) : null,
+      partNumber: opts.partNumber, stock: opts.stock ?? 12, warrantyMonths: opts.warranty,
+      condition: opts.condition ?? 'NEW', description: opts.description,
+    }).returning();
+    if (opts.fits?.length) {
+      await db.insert(productFitments).values(
+        opts.fits.map(([make, model, yearFrom, yearTo]) => ({ productId: p.id, make, model, yearFrom, yearTo })),
+      );
+    }
+    return p;
+  };
+
+  // Filters
+  const airFilter = await product(cah.id, 'air-filters', 'Denso', 'Air Filter, Axio / Fielder', 2850, { partNumber: '17801-21050', stock: 25, fits: [AXIO, FIELDER], sale: [2290, 2.25] });
+  await product(llc.id, 'fuel-filters', 'Toyota Genuine', 'Fuel Filter 23300-21010', 3900, { partNumber: '23300-21010', stock: 14, fits: [AXIO, PREMIO] });
+  await product(llc.id, 'cabin-filters', 'Bosch', 'Cabin AC Filter, Activated Carbon', 3400, { stock: 18, fits: [AXIO, FIELDER, VEZEL, FIT] });
+  const oilFilter = await product(cah.id, 'oil-filters', 'Toyota Genuine', 'Oil Filter 90915-10003', 2900, { partNumber: '90915-10003', stock: 60, fits: [AXIO, FIELDER, PREMIO, AQUA] });
+  // Electric parts
+  await product(kms.id, 'horn', 'Bosch', 'Twin Tone Disc Horn Set, 12 V', 5600, { compareAt: 6800, stock: 20, warranty: 6 });
+  await product(kms.id, 'ignition-coil', 'Denso', 'Ignition Coil 90919-02252', 9800, { partNumber: '90919-02252', stock: 8, warranty: 6, fits: [AXIO, FIELDER, AQUA] });
+  const plugs = await product(cah.id, 'spark-plug', 'NGK', 'Iridium Spark Plugs, set of 4', 11200, { partNumber: 'DILKAR6A11', stock: 16, fits: [AXIO, FIELDER, VEZEL], sale: [8990, 1.1] });
+  await product(cah.id, 'bulb', 'Philips', 'LED Headlight Bulbs H4, pair', 8900, { compareAt: 10500, stock: 24, warranty: 12 });
+  // Brake & suspension
+  const pads = await product(cah.id, 'brake-pad', 'Brembo', 'Ceramic Front Brake Pads', 14500, {
+    compareAt: 16900, partNumber: 'P 83 152', stock: 14, warranty: 6, fits: [AXIO, FIELDER],
+    description: 'Low-dust ceramic compound, quiet operation and OEM-matched pedal feel. Set of 4 for the front axle, anti-squeal shims pre-fitted.',
+  });
+  await product(cah.id, 'brake-pad', 'Bosch', 'Semi-Metallic Brake Pads', 9800, { partNumber: '0 986 494 431', stock: 20, warranty: 6, fits: [AXIO, AQUA], sale: [7900, 2.25] });
+  const dot4 = await product(llc.id, 'brake-fluid', 'Castrol', 'Brake Fluid DOT 4, 1 L', 3200, { stock: 40 });
+  await product(kms.id, 'engine-mounts', 'Toyota Genuine', 'Engine Mount, Right Side', 15400, { partNumber: '12305-21260', stock: 4, warranty: 6, fits: [AXIO, FIELDER] });
+  await product(kms.id, 'stabilizer-link', '555', 'Front Stabilizer Link, pair', 6400, { partNumber: 'SL-T290', stock: 11, fits: [AXIO, FIELDER, PREMIO] });
+  await product(kms.id, 'bush', 'Toyota Genuine', 'Lower Arm Bush Kit', 4800, { stock: 9, fits: [AXIO, FIELDER] });
+  await product(kms.id, 'caliper-piston', 'Aisin', 'Front Caliper Piston', 3900, { stock: 6, fits: [AXIO, FIELDER] });
+  await product(kms.id, 'caliper-repair-kits', 'Seiken', 'Front Caliper Repair Kit', 2600, { stock: 15, fits: [AXIO, FIELDER, PREMIO] });
+  await product(kms.id, 'shock-mount', 'KYB', 'Front Shock Mount with Bearing', 7200, { stock: 7, warranty: 6, fits: [AXIO, FIELDER] });
+  const dampers = await product(kms.id, 'dampers', 'KYB', 'Excel-G Rear Dampers, pair', 24500, { compareAt: 27800, partNumber: '343459', stock: 6, warranty: 12, fits: [AXIO, FIELDER] });
+  // Gear box
+  await product(kms.id, 'clutch-repair-kits', 'Exedy', 'Clutch Master Cylinder Repair Kit', 3200, { stock: 10, fits: [WAGONR] });
+  await product(kms.id, 'clutch-plate', 'Exedy', 'Clutch Disc Plate 200 mm', 12800, { stock: 5, warranty: 6, fits: [WAGONR] });
+  await product(kms.id, 'pressure-plate', 'Exedy', 'Clutch Pressure Plate 200 mm', 14900, { stock: 3, warranty: 6, fits: [WAGONR] });
+  // Accessories
+  await product(llc.id, 'air-fresheners', 'Areon', 'Car Air Freshener Gel, Black Crystal', 1450, { stock: 50, sale: [990, 2.25] });
+  await product(llc.id, 'wiper-blades', 'Bosch', 'Aerotwin Wiper Blades 26" + 14" (imported)', 23, { currency: 'USD', compareAt: 26.5, stock: 20, fits: [AXIO, FIELDER] });
+  await product(cah.id, 'vip-lights', 'Osram', 'LED VIP Interior Lights Kit (imported)', 14, { currency: 'USD', stock: 12 });
+  // Lubricants & coolants
+  const atf = await product(llc.id, 'gear-box-oil', 'Toyota Genuine', 'ATF WS Gear Box Oil, 4 L', 11500, { stock: 9, fits: [AXIO, PREMIO, AQUA] });
+  const mobil = await product(llc.id, 'engine-oil', 'Mobil 1', 'Engine Oil 5W-30 Fully Synthetic, 4 L', 12800, {
+    compareAt: 13900, stock: 30, description: 'Fully synthetic 5W-30 for petrol and hybrid engines. API SP / ILSAC GF-6A.',
+  });
+  await product(llc.id, 'engine-oil', 'Shell', 'Helix HX7 10W-40 Semi-Synthetic, 4 L', 8900, { stock: 22 });
+  await product(llc.id, 'coolant', 'Toyota Genuine', 'Super Long Life Coolant, 2 L', 4600, { stock: 15 });
+  // Bearings
+  await product(kms.id, 'hub-bearings', 'NSK', 'Front Wheel Hub Bearing', 8600, { stock: 8, warranty: 6, fits: [AXIO, FIELDER, AQUA] });
+  await product(kms.id, 'clutch-bearings', 'Koyo', 'Clutch Release Bearing', 3400, { stock: 10, fits: [WAGONR] });
+  // Engine parts
+  await product(kms.id, 'tappet-cover', 'Toyota Genuine', 'Tappet Cover Gasket Set', 2900, { stock: 12, fits: [AXIO, FIELDER, PREMIO] });
+  await product(kms.id, 'water-pump', 'Aisin', 'Water Pump with Gasket', 13500, { compareAt: 15200, stock: 5, warranty: 12, fits: [AXIO, FIELDER] });
+  await product(kms.id, 'fuel-pump', 'Denso', 'In-Tank Fuel Pump', 16800, { stock: 4, warranty: 6, fits: [AXIO, PREMIO] });
+  await product(cah.id, 'tensioner-pulley-adjusters', 'Gates', 'Belt Tensioner Pulley (imported)', 26, { currency: 'USD', stock: 6, fits: [AXIO, FIELDER] });
+  // Engine belts
+  await product(cah.id, 'alternator-belts', 'Gates', 'Alternator Belt 7PK1515', 3600, { partNumber: '7PK1515', stock: 18, fits: [AXIO, FIELDER] });
+  await product(cah.id, 'fan-belts', 'Bando', 'Fan Belt 4PK890', 1900, { stock: 25 });
+  await product(cah.id, 'ac-belt', 'Mitsuboshi', 'AC Belt 4PK845', 2200, { stock: 20, fits: [VEZEL, FIT] });
+
+  // ---- orders: one delivered (reviewable), one pending (for seller flow) ----
+  type P = typeof pads;
+  const makeOrder = async (buyerId: string, lines: { p: P; qty: number; status: 'PENDING' | 'SHIPPED' | 'DELIVERED' }[], status: 'PENDING' | 'SHIPPED' | 'DELIVERED', daysAgo: number) => {
+    const subtotal = lines.reduce((s, l) => s + Number(l.p.price) * l.qty, 0);
+    const sellers = new Set(lines.map((l) => l.p.storeId)).size;
+    const createdAt = new Date(Date.now() - daysAgo * 86400000);
+    const [o] = await db.insert(orders).values({
+      buyerId, status, subtotal: String(subtotal), deliveryFee: String(sellers * 450), total: String(subtotal + sellers * 450),
+      addressLine1: '42 Temple Road', city: 'Nugegoda', district: 'Colombo', contactPhone: '+94771234567', createdAt,
+    }).returning();
+    await db.insert(orderItems).values(lines.map((l) => ({
+      orderId: o.id, productId: l.p.id, storeId: l.p.storeId, quantity: l.qty, unitPrice: l.p.price, fulfillmentStatus: l.status,
+    })));
+  };
+  await makeOrder(kasun.id, [{ p: pads, qty: 1, status: 'DELIVERED' }, { p: oilFilter, qty: 2, status: 'DELIVERED' }], 'DELIVERED', 14);
+  await makeOrder(kasun.id, [{ p: airFilter, qty: 1, status: 'PENDING' }, { p: plugs, qty: 1, status: 'PENDING' }], 'PENDING', 1);
+  await makeOrder(rwan.id, [{ p: pads, qty: 1, status: 'DELIVERED' }, { p: dampers, qty: 1, status: 'DELIVERED' }], 'DELIVERED', 20);
+  await makeOrder(dilani.id, [{ p: mobil, qty: 2, status: 'DELIVERED' }, { p: pads, qty: 1, status: 'DELIVERED' }], 'DELIVERED', 30);
+
+  // ---- reviews (Kasun's pads are left unreviewed so you can try it) ----
+  await db.insert(reviews).values([
+    { productId: pads.id, userId: rwan.id, rating: 5, comment: 'Perfect fit on my 2016 Axio. No squeal, much less dust than the pads it came with. Seller packed them well.' },
+    { productId: pads.id, userId: dilani.id, rating: 4, comment: 'Good braking feel after bedding in. Took a star off because delivery took five days.' },
+    { productId: dampers.id, userId: rwan.id, rating: 5, comment: 'Ride is back to factory smooth. Fitted in an hour.' },
+    { productId: mobil.id, userId: dilani.id, rating: 5, comment: 'Genuine stock, sealed properly.' },
+    { productId: oilFilter.id, userId: rwan.id, rating: 4, comment: 'Genuine part, fair price.' },
+  ]);
+
+  await db.insert(wishlistItems).values([
+    { userId: kasun.id, productId: dampers.id },
+    { userId: kasun.id, productId: atf.id },
+    { userId: kasun.id, productId: dot4.id },
+  ]);
+
+  // ---- a sample chat about a specific part ----
+  const t = (minsAgo: number) => new Date(Date.now() - minsAgo * 60000);
+  const [conv] = await db.insert(conversations).values({
+    productId: pads.id, buyerId: kasun.id, storeId: cah.id, buyerLastReadAt: t(70), sellerLastReadAt: t(60),
+  }).returning();
+  await db.insert(messages).values([
+    { conversationId: conv.id, senderId: kasun.id, body: 'Hi, will these fit a 2016 Axio hybrid (NKE165)?', createdAt: t(90) },
+    { conversationId: conv.id, senderId: cahOwner.id, body: 'Yes, the NKE165 uses the same front caliper. Send your chassis number and we will double-check.', createdAt: t(80) },
+    { conversationId: conv.id, senderId: kasun.id, body: 'Chassis is NKE165-7123456. Do they come with the anti-squeal shims?', createdAt: t(70) },
+    { conversationId: conv.id, senderId: cahOwner.id, body: 'Confirmed, they fit. Shims are pre-fitted on each pad.', createdAt: t(60) },
+  ]);
+
+  const [{ n }] = await db.select({ n: sql<number>`count(*)` }).from(products);
+  console.log(`\nSeeded ${n} products across 3 stores (4 on flash sale, 3 priced in USD).\n`);
+  console.log('Accounts (password for all: password123)');
+  console.log('  Buyer   buyer@genuineparts.lk       Kasun — has orders, a chat, a garage');
+  console.log('  Seller  seller@genuineparts.lk      Colombo Auto Hub — has a pending order to ship');
+  console.log('  Seller  kandy@genuineparts.lk       Kandy Motor Spares');
+  console.log('  Seller  lubecentre@genuineparts.lk  Lanka Lube Centre');
+}
+
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await queryClient.end();
+  });

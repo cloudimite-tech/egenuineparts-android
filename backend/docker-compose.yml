@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: redline-parts-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: redline_parts
+    ports:
+      # Host 5433 -> container 5432, so this never collides with another
+      # Postgres container (e.g. gym-pos-db) already using 5432 on your Mac.
+      - "5433:5432"
+    volumes:
+      - redline_parts_pgdata:/var/lib/postgresql/data
+
+volumes:
+  redline_parts_pgdata:

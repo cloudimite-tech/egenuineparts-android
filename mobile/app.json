@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Genuine Parts.lk",
+    "slug": "genuine-parts-lk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "lk.genuineparts.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "lk.genuineparts.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "genuineparts",
+    "backgroundColor": "#FFFFFF",
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Genuine Parts.lk needs your photos so you can add pictures of the parts you sell.",
+          "cameraPermission": "Genuine Parts.lk needs the camera so you can photograph the parts you sell."
+        }
+      ],
+      "./plugins/withProjectJdk"
+    ]
+  }
+}
