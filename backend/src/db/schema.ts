@@ -11,7 +11,7 @@ import {
   primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { createId } from '@paralleldrive/cuid2';
+import { createId } from '../common/id';
 
 const id = () => text('id').primaryKey().$defaultFn(() => createId());
 

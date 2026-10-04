@@ -12,7 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { join } from 'path';
 import { writeFile } from 'fs/promises';
-import { createId } from '@paralleldrive/cuid2';
+import { createId } from '../common/id';
 import { put } from '@vercel/blob';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { NoGuestGuard } from '../common/guards/no-guest.guard';
