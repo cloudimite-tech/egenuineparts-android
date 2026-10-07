@@ -29,4 +29,12 @@ export type RootStackParamList = {
   SellerProducts: undefined;
   ProductForm: { productId?: string } | undefined;
   SellerOrders: undefined;
+  // seller verification (locked until an admin approves)
+  SellerGate: undefined;
+  SellerApplication: undefined;
+  // account
+  EditProfile: undefined;
+  // admin
+  AdminDashboard: undefined;
+  AdminSellerDetail: { id: string };
 };

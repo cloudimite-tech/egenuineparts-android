@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { UPLOADS_DIR } from './uploads/uploads.controller';
@@ -12,7 +12,14 @@ import { ensureFreshRate } from './products/pricing';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    // Public share pages + Android App Links file live at the site root.
+    exclude: [
+      { path: 'p/:id', method: RequestMethod.GET },
+      { path: 's/:slug', method: RequestMethod.GET },
+      { path: '.well-known/assetlinks.json', method: RequestMethod.GET },
+    ],
+  });
 
   // Keep the USD→LKR rate fresh. Only the first request after a cold start
   // (or every 6h) waits for the fetch; everything else uses the cached rate.

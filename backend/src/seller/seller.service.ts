@@ -12,12 +12,12 @@ const ALLOWED_NEXT: Record<string, string[]> = {
   CANCELLED: [],
 };
 
+import { requireApprovedStore } from '../common/seller-access';
+
 @Injectable()
 export class SellerService {
   private async store(userId: string) {
-    const store = await db.query.stores.findFirst({ where: eq(stores.ownerId, userId) });
-    if (!store) throw new ForbiddenException('You don’t have a store yet.');
-    return store;
+    return requireApprovedStore(userId);
   }
 
   async dashboard(userId: string) {

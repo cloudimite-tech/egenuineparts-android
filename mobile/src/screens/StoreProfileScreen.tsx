@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { shareStore } from '../utils/share';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -56,6 +57,9 @@ export function StoreProfileScreen({ route, navigation }: Props) {
       <View style={styles.cover}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back} hitSlop={10}>
           <Ionicons name="chevron-back" size={26} color={colors.white} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => shareStore(store)} style={[styles.back, { left: undefined, right: spacing.md }]} hitSlop={10} accessibilityLabel="Share store">
+          <Ionicons name="share-social-outline" size={24} color={colors.white} />
         </TouchableOpacity>
       </View>
       <View style={styles.profile}>

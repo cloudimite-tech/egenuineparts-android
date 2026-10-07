@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
 import { useVehicleStore, vehicleLabel } from '../store/vehicleStore';
 import { initials } from '../utils/format';
+import { sellerStatusLabel, startSelling } from '../utils/selling';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Account'>,
@@ -46,13 +47,10 @@ export function AccountScreen({ navigation }: Props) {
           <Perk icon="chatbubbles-outline" title="Chat with sellers" text="Ask about any part, privately in the app." />
           <Perk icon="cash-outline" title="Cash on delivery" text="Order island-wide and pay on arrival." />
         </View>
-        <TouchableOpacity style={styles.sellCard} onPress={() => navigation.navigate('Signup', { sell: true })} activeOpacity={0.85}>
-          <Ionicons name="storefront" size={28} color={colors.white} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sellTitle}>Sell on Genuine Parts.lk</Text>
-            <Text style={styles.sellSub}>Open your store free and reach buyers island-wide.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color={colors.white} />
+        <TouchableOpacity style={styles.sellLink} onPress={() => navigation.navigate('Signup', { sell: true })}>
+          <Ionicons name="storefront-outline" size={16} color={colors.navy} />
+          <Text style={styles.sellLinkText}>Want to sell parts? Create a seller account</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.navy} />
         </TouchableOpacity>
       </ScrollView>
     );
@@ -90,30 +88,39 @@ export function AccountScreen({ navigation }: Props) {
         </View>
       </GradientHeader>
 
-      {profile?.store ? (
+      {profile?.role === 'ADMIN' ? (
+        <TouchableOpacity style={[styles.sellCard, { backgroundColor: colors.navyDark }]} onPress={() => navigation.navigate('AdminDashboard')} activeOpacity={0.85}>
+          <View style={styles.storeIcon}>
+            <Ionicons name="shield-checkmark" size={22} color={colors.white} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sellOverline}>ADMIN</Text>
+            <Text style={styles.sellTitle}>Admin panel</Text>
+            <Text style={styles.sellSub}>Review and approve seller applications</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color={colors.white} />
+        </TouchableOpacity>
+      ) : profile?.store?.status === 'APPROVED' ? (
         <TouchableOpacity style={[styles.sellCard, { backgroundColor: colors.navy }]} onPress={() => navigation.navigate('SellerDashboard')} activeOpacity={0.85}>
           <View style={styles.storeIcon}>
             <Ionicons name="storefront" size={22} color={colors.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.sellOverline}>SELLER CENTER</Text>
+            <Text style={styles.sellOverline}>SELLER CENTRE</Text>
             <Text style={styles.sellTitle}>{profile.store.name}</Text>
             <Text style={styles.sellSub}>Listings, orders and store settings</Text>
           </View>
           <Ionicons name="chevron-forward" size={22} color={colors.white} />
         </TouchableOpacity>
-      ) : (
-        <TouchableOpacity style={styles.sellCard} onPress={() => navigation.navigate('StoreSetup', { mode: 'create' })} activeOpacity={0.85}>
-          <Ionicons name="storefront" size={28} color={colors.white} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sellTitle}>Start selling</Text>
-            <Text style={styles.sellSub}>Open a free store and list your parts in minutes.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color={colors.white} />
-        </TouchableOpacity>
-      )}
+      ) : null}
 
       <View style={styles.menu}>
+        <MenuItem
+          icon="person-circle-outline"
+          label="My details & address"
+          detail={profile?.city ? `${profile.city}${profile.district ? `, ${profile.district}` : ''}` : 'Add address'}
+          onPress={() => navigation.navigate('EditProfile')}
+        />
         <MenuItem icon="car-sport-outline" label="My garage" detail={vehicle ? vehicleLabel(vehicle) : undefined} onPress={() => navigation.navigate('Garage')} />
         <MenuItem icon="cube-outline" label="My orders" onPress={() => navigation.navigate('Orders')} />
         <MenuItem icon="heart-outline" label="Wishlist" onPress={() => navigation.navigate('Wishlist')} />
@@ -127,6 +134,14 @@ export function AccountScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.menu}>
+        {profile?.role !== 'ADMIN' && profile?.store?.status !== 'APPROVED' ? (
+          <MenuItem
+            icon="storefront-outline"
+            label="Become a seller"
+            detail={sellerStatusLabel(profile?.store?.status) ?? 'Verified stores only'}
+            onPress={() => startSelling(navigation)}
+          />
+        ) : null}
         <MenuItem icon="help-buoy-outline" label="Ask the assistant" detail="Find parts, track orders" onPress={() => navigation.navigate('Assistant')} />
         <MenuItem icon="shield-checkmark-outline" label="Buyer protection" detail="Chats & payments stay in-app" onPress={() => Alert.alert('Buyer protection', 'Keep conversations and payments inside Genuine Parts.lk. Sellers are verified, and contact details are blocked in chat so every order stays traceable.')} />
         <MenuItem icon="help-circle-outline" label="Help & support" onPress={() => Alert.alert('Help & support', 'Email support@genuineparts.lk and we’ll get back to you within a day.')} last />
@@ -239,6 +254,8 @@ const styles = StyleSheet.create({
   sellOverline: { color: '#A1A1AA', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
   sellTitle: { color: colors.white, fontWeight: '900', fontSize: 16 },
   sellSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  sellLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: spacing.md },
+  sellLinkText: { color: colors.navy, fontWeight: '700', fontSize: 13 },
   menu: { backgroundColor: colors.white, borderRadius: radius.md, marginHorizontal: spacing.md, marginTop: spacing.md, paddingHorizontal: spacing.md },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15 },
   menuBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },

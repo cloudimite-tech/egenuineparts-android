@@ -19,7 +19,7 @@ export function OrderSuccessScreen({ route, navigation }: Props) {
       <Text style={styles.title}>Order placed!</Text>
       <Text style={styles.number}>{orderNumber(orderId)}</Text>
       <Text style={styles.body}>
-        The seller has been notified and will ship your parts soon. You'll pay cash when they arrive.
+        The seller has been notified and will ship your parts soon. You’ll pay cash when they arrive.
       </Text>
       <View style={styles.steps}>
         <Step icon="receipt-outline" text="Seller confirms and packs your order" />

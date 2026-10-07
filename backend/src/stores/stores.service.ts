@@ -5,34 +5,16 @@ import { productImages, products, reviews, stores, users } from '../db/schema';
 import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 import { ProductsService } from '../products/products.service';
 import { presentPrice } from '../products/pricing';
-
-function slugify(name: string) {
-  return (
-    name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') || `store-${Date.now()}`
-  );
-}
+import { requireApprovedStore } from '../common/seller-access';
 
 @Injectable()
 export class StoresService {
   constructor(private readonly productsService: ProductsService) {}
 
-  // Any signed-in account can open a store (like Daraz/AliExpress, a seller
-  // can also buy). Opening one upgrades the account's role to SELLER.
-  async create(ownerId: string, dto: CreateStoreDto) {
-    const existing = await db.query.stores.findFirst({ where: eq(stores.ownerId, ownerId) });
-    if (existing) throw new BadRequestException('You already have a store.');
-
-    let slug = slugify(dto.name);
-    const slugTaken = await db.query.stores.findFirst({ where: eq(stores.slug, slug) });
-    if (slugTaken) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
-
-    const [store] = await db.insert(stores).values({ ...dto, ownerId, slug }).returning();
-    await db.update(users).set({ role: 'SELLER' }).where(and(eq(users.id, ownerId), eq(users.role, 'BUYER')));
-    return store;
+  // Stores are now opened through the seller application
+  // (PUT /seller-application) and go live only after admin approval.
+  async create(_ownerId: string, _dto: CreateStoreDto) {
+    throw new BadRequestException('Create a seller account and submit the seller application to open a store.');
   }
 
   async myStore(ownerId: string) {
@@ -42,7 +24,7 @@ export class StoresService {
   }
 
   async update(ownerId: string, dto: UpdateStoreDto) {
-    const store = await this.myStore(ownerId);
+    const store = await requireApprovedStore(ownerId);
     const [updated] = await db.update(stores).set(dto).where(eq(stores.id, store.id)).returning();
     return updated;
   }
@@ -51,7 +33,7 @@ export class StoresService {
     const store = await db.query.stores.findFirst({
       where: or(eq(stores.id, idOrSlug), eq(stores.slug, idOrSlug)),
     });
-    if (!store) throw new NotFoundException('Store not found.');
+    if (!store || store.status !== 'APPROVED') throw new NotFoundException('Store not found.');
 
     const storeProducts = await db.query.products.findMany({
       where: and(eq(products.storeId, store.id), eq(products.isActive, true)),
@@ -69,7 +51,10 @@ export class StoresService {
       .innerJoin(products, eq(reviews.productId, products.id))
       .where(eq(products.storeId, store.id));
 
-    const { ownerId, ...publicStore } = store;
+    const publicStore = {
+      id: store.id, name: store.name, slug: store.slug, bio: store.bio, logoUrl: store.logoUrl,
+      verified: store.verified, shipsFrom: store.shipsFrom, returnsPolicy: store.returnsPolicy, createdAt: store.createdAt,
+    };
     const storeInfo = { id: store.id, name: store.name, slug: store.slug, verified: store.verified };
     return {
       ...publicStore,

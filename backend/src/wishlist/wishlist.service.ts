@@ -13,13 +13,18 @@ export class WishlistService {
         product: {
           with: {
             images: { orderBy: asc(productImages.position) },
-            store: { columns: { id: true, name: true, slug: true, verified: true } },
+            store: { columns: { id: true, name: true, slug: true, verified: true, status: true } },
           },
         },
       },
       orderBy: desc(wishlistItems.createdAt),
     });
-    return rows.filter((r) => r.product.isActive).map((r) => presentPrice(r.product));
+    return rows
+      .filter((r) => r.product.isActive && r.product.store.status === 'APPROVED')
+      .map((r) => {
+        const { status, ...store } = r.product.store;
+        return presentPrice({ ...r.product, store });
+      });
   }
 
   async ids(userId: string) {

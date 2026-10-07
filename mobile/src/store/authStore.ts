@@ -2,7 +2,15 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../api/client';
 import { setAuthToken } from '../api/authToken';
-import { AuthUser, Profile } from '../types';
+import { Address, AuthUser, Profile } from '../types';
+
+export interface RegisterInput extends Address {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: 'BUYER' | 'SELLER';
+}
 
 interface AuthState {
   token: string | null;
@@ -12,7 +20,7 @@ interface AuthState {
   isGuest: boolean;
   hydrate: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, phone: string, password: string) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
   continueAsGuest: () => Promise<void>;
   refreshProfile: () => Promise<Profile | null>;
   logout: () => Promise<void>;
@@ -60,12 +68,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().refreshProfile().catch(() => {});
   },
 
-  register: async (fullName, email, phone, password) => {
+  register: async (input) => {
     const { data } = await apiClient.post('/auth/register', {
-      fullName,
-      email,
-      phone: phone || undefined,
-      password,
+      ...input,
+      addressLine2: input.addressLine2 || undefined,
     });
     await persist(data.accessToken, data.user);
     set({ token: data.accessToken, user: data.user, isGuest: false });
@@ -82,7 +88,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().isGuest) return null;
     try {
       const { data } = await apiClient.get<Profile>('/users/me');
-      set({ profile: data });
+      // Keep the cached user in step (role / seller approval can change).
+      const user = get().user;
+      const nextUser = user ? { ...user, role: data.role, fullName: data.fullName, sellerStatus: data.sellerStatus } : user;
+      if (user && (user.sellerStatus !== data.sellerStatus || user.role !== data.role)) {
+        await persist(get().token, nextUser);
+      }
+      set({ profile: data, user: nextUser });
       return data;
     } catch (e: any) {
       // Token expired or account gone — fall back to guest browsing.

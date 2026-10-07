@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useNoScreenshots } from '../../utils/useNoScreenshots';
 import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -26,6 +27,7 @@ const TABS: { key: string; label: string; match: FulfillmentStatus[] }[] = [
 ];
 
 export function SellerOrdersScreen({ navigation }: Props) {
+  useNoScreenshots('seller-orders');
   const [orders, setOrders] = useState<SellerOrder[] | null>(null);
   const [tab, setTab] = useState('ship');
   const [refreshing, setRefreshing] = useState(false);
@@ -68,7 +70,7 @@ export function SellerOrdersScreen({ navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Header title="Orders" subtitle="Seller Center" back>
+      <Header title="Orders" subtitle="Seller Centre" back>
         <View style={styles.tabs}>
           {TABS.map((t) => (
             <TouchableOpacity key={t.key} style={[styles.tab, tab === t.key && styles.tabOn]} onPress={() => setTab(t.key)}>

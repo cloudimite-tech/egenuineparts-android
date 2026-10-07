@@ -2,7 +2,8 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { and, asc, count, desc, eq, gt, inArray, ne, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { conversations, messages, productImages, products, stores } from '../db/schema';
-import { checkForContactInfo } from '../common/contact-filter';
+import { checkForContactInfo, checkSplitNumber } from '../common/contact-filter';
+import { stripValidShareLinks } from '../common/share-links';
 import { shortName } from '../products/products.service';
 import { effectivePrice } from '../products/pricing';
 
@@ -157,9 +158,23 @@ export class ChatService {
     const body = (rawBody ?? '').trim().slice(0, 2000);
     if (!body) return { blocked: true as const, reason: 'Message is empty.' };
 
-    const filterResult = checkForContactInfo(body);
+    // Genuine Parts.lk product/store links are allowed; everything else in
+    // the message still has to pass the contact-info filter.
+    const { text: rest } = await stripValidShareLinks(body);
+    const filterResult = checkForContactInfo(rest);
     if (filterResult.blocked) {
       return { blocked: true as const, reason: filterResult.reason };
+    }
+    // …and a number can't be smuggled through in pieces across messages.
+    const recent = await db
+      .select({ body: messages.body })
+      .from(messages)
+      .where(and(eq(messages.conversationId, conversationId), eq(messages.senderId, userId), gt(messages.createdAt, new Date(Date.now() - 30 * 60 * 1000))))
+      .orderBy(desc(messages.createdAt))
+      .limit(6);
+    const split = checkSplitNumber(recent.map((r) => r.body).reverse(), rest);
+    if (split.blocked) {
+      return { blocked: true as const, reason: split.reason };
     }
 
     const [message] = await db

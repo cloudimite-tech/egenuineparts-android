@@ -197,7 +197,7 @@ export function ProductFormScreen({ route, navigation }: Props) {
       return;
     }
     if (yt < yf) {
-      toast.error('"To" year must be after "from" year.');
+      toast.error('“To” year must be after “from” year.');
       return;
     }
     setFitments((f) => [...f, { make: cap(fitDraft.make), model: cap(fitDraft.model), yearFrom: yf, yearTo: yt }]);
@@ -206,7 +206,7 @@ export function ProductFormScreen({ route, navigation }: Props) {
 
   const save = async () => {
     const e: Record<string, string> = {};
-    if (title.trim().length < 3) e.title = 'Add a clear title (e.g. "Front brake pads, ceramic").';
+    if (title.trim().length < 3) e.title = 'Add a clear title (e.g. “Front brake pads, ceramic”).';
     if (!brand.trim()) e.brand = 'Enter the brand.';
     if (!(Number(price) > 0)) e.price = 'Enter a price.';
     if (compareAt && Number(compareAt) <= Number(price)) e.compareAt = 'Must be higher than the price to show a discount.';
@@ -338,11 +338,11 @@ export function ProductFormScreen({ route, navigation }: Props) {
             label="Description"
             optional
             multiline
-            placeholder="Material, what's in the box, anything a buyer should know."
+            placeholder="Material, what’s in the box, anything a buyer should know."
             value={description}
             onChangeText={setDescription}
             maxLength={2000}
-            hint="Don't include phone numbers or links — buyers can chat with you in the app."
+            hint="Don’t include phone numbers or links — buyers can chat with you in the app."
           />
         </Card>
 

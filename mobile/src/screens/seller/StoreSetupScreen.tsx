@@ -17,7 +17,7 @@ import { errorMessage, useRequireAccount } from '../../utils/useRequireAccount';
 type Props = NativeStackScreenProps<RootStackParamList, 'StoreSetup'>;
 
 export function StoreSetupScreen({ route, navigation }: Props) {
-  const mode = route.params?.mode ?? 'create';
+  const mode = route.params?.mode ?? 'edit';
   const insets = useSafeAreaInsets();
   const isGuest = useAuthStore((s) => s.isGuest);
   const requireAccount = useRequireAccount();
@@ -111,7 +111,7 @@ export function StoreSetupScreen({ route, navigation }: Props) {
           <View style={styles.note}>
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.info} />
             <Text style={styles.noteText}>
-              Don't add phone numbers, emails or social links to your store — buyers contact you through Genuine Parts.lk chat, and delivery details arrive with each order.
+              Don’t add phone numbers, emails or social links to your store — buyers contact you through Genuine Parts.lk chat, and delivery details arrive with each order.
             </Text>
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}

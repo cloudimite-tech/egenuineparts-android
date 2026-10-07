@@ -3,11 +3,23 @@ export type Condition = 'NEW' | 'USED' | 'REFURBISHED';
 export type Currency = 'LKR' | 'USD';
 export type FulfillmentStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 
+// Seller accounts are locked until an admin approves their application.
+export type SellerStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+export type StoreStatus = Exclude<SellerStatus, 'NOT_SUBMITTED'>;
+
 export interface AuthUser {
   id: string;
   fullName?: string;
   email?: string;
   role: Role;
+  sellerStatus?: SellerStatus | null;
+}
+
+export interface Address {
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  district: string;
 }
 
 export interface Profile {
@@ -16,9 +28,115 @@ export interface Profile {
   email: string;
   phone?: string | null;
   role: Role;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  district?: string | null;
+  sellerStatus: SellerStatus | null;
   createdAt: string;
-  store: { id: string; name: string; slug: string; verified: boolean } | null;
+  store: { id: string; name: string; slug: string; verified: boolean; status: StoreStatus; reviewNote?: string | null } | null;
   counts: { orders: number; wishlist: number; reviews: number };
+}
+
+export interface SellerApplication {
+  storeName: string;
+  bio?: string | null;
+  returnsPolicy?: string | null;
+  businessName: string | null;
+  brNumber: string | null;
+  addressLine1: string | null;
+  addressLine2?: string | null;
+  city: string | null;
+  district: string | null;
+  contactPhone: string | null;
+  nicNumber?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  document: AppDoc | null;
+  nicFront?: AppDoc | null;
+  nicBack?: AppDoc | null;
+  selfie?: AppDoc | null;
+}
+
+export interface AppDoc {
+  id: string;
+  kind?: 'BR' | 'NIC_FRONT' | 'NIC_BACK' | 'SELFIE';
+  fileName: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface AdminDoc extends AppDoc {
+  createdAt: string;
+  url: string;
+}
+
+export interface MyApplication {
+  status: SellerStatus;
+  reviewNote?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  application: SellerApplication | null;
+}
+
+export interface AdminSellerRow {
+  id: string;
+  storeName: string;
+  businessName: string | null;
+  brNumber: string | null;
+  city: string | null;
+  district: string | null;
+  status: StoreStatus;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  ownerName: string;
+  ownerEmail: string;
+}
+
+export interface AdminSellerDetail {
+  id: string;
+  status: StoreStatus;
+  storeName: string;
+  slug: string;
+  bio?: string | null;
+  returnsPolicy?: string | null;
+  businessName: string | null;
+  brNumber: string | null;
+  addressLine1: string | null;
+  addressLine2?: string | null;
+  city: string | null;
+  district: string | null;
+  contactPhone: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  reviewNote: string | null;
+  productCount: number;
+  owner: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    district?: string | null;
+    createdAt: string;
+  } | null;
+  nicNumber: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  document: AdminDoc | null;
+  nicFront: AdminDoc | null;
+  nicBack: AdminDoc | null;
+  selfie: (AdminDoc & { takenAt: string | null; latitude: number | null; longitude: number | null; distanceFromShopM: number | null }) | null;
+}
+
+export interface AdminStats {
+  sellers: Record<StoreStatus, number>;
+  users: { buyers: number; sellers: number; admins: number };
+  products: number;
+  orders: number;
 }
 
 export interface ProductImage {

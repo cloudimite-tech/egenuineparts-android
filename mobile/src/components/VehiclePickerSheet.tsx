@@ -55,7 +55,7 @@ export function VehiclePickerSheet({ visible, onClose }: { visible: boolean; onC
 
   return (
     <SheetModal visible={visible} onClose={onClose} title="Shopping for">
-      <Text style={styles.lead}>We'll show parts that fit, and flag the ones that don't.</Text>
+      <Text style={styles.lead}>We’ll show parts that fit, and flag the ones that don’t.</Text>
 
       {garage.length > 0 && (
         <>

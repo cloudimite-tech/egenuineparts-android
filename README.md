@@ -86,7 +86,7 @@ Or just open the app — it starts in guest mode, no sign-in needed to browse.
   write a review once delivered, buy again.
 - Wishlist, My garage (default vehicle, chassis code), account page.
 
-**Sellers (Seller Center)**
+**Sellers (Seller Centre)**
 - Any account can open a store (Account → Start selling, or "Buy & sell" at sign-up).
 - Dashboard: total sales, units sold, orders to ship, unread chats, active & low-stock listings.
 - **List a part**: up to 6 photos (camera or library, uploaded to the server), title, brand,

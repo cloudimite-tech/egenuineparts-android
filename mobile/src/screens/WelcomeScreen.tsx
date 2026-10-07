@@ -45,7 +45,7 @@ export function WelcomeScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <View style={styles.heroTop}>
-            <Logo height={34} onDark tagline="SRI LANKA'S AUTO PARTS MARKETPLACE" />
+            <Logo height={34} onDark tagline="SRI LANKA’S AUTO PARTS MARKETPLACE" />
             <TouchableOpacity style={styles.guestPill} onPress={close}>
               <Text style={styles.guestPillText}>Keep browsing</Text>
               <Ionicons name="close" size={16} color={colors.white} />

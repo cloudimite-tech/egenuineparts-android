@@ -10,7 +10,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:seed": "ts-node src/db/seed.ts",
-    "db:categories": "ts-node src/db/update-categories.ts"
+    "db:categories": "ts-node src/db/update-categories.ts",
+    "admin:create": "ts-node src/db/create-admin.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.4",

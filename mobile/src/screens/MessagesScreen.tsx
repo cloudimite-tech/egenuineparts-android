@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNoScreenshots } from '../utils/useNoScreenshots';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
@@ -23,6 +24,7 @@ type Props = CompositeScreenProps<
 type Filter = 'all' | 'buying' | 'selling';
 
 export function MessagesScreen({ navigation }: Props) {
+  useNoScreenshots('inbox');
   const { isGuest, profile, user } = useAuthStore();
   const inboxVersion = useChatStore((s) => s.inboxVersion);
   const [threads, setThreads] = useState<Conversation[] | null>(null);

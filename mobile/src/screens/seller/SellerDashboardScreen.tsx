@@ -36,8 +36,8 @@ export function SellerDashboardScreen({ navigation }: Props) {
   if (failed && !data) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Header title="Seller Center" back />
-        <EmptyState icon="storefront-outline" title="No store yet" message="Set up your store to start selling." actionLabel="Set up store" onAction={() => navigation.replace('StoreSetup', { mode: 'create' })} />
+        <Header title="Seller Centre" back />
+        <EmptyState icon="storefront-outline" title="Store not available" message="Your store isn’t active right now. Pull down on the Account tab to refresh, or contact support." actionLabel="Back" onAction={() => navigation.goBack()} />
       </View>
     );
   }
@@ -45,8 +45,8 @@ export function SellerDashboardScreen({ navigation }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Header
-        title={data?.store.name ?? 'Seller Center'}
-        subtitle="Seller Center"
+        title={data?.store.name ?? 'Seller Centre'}
+        subtitle="Seller Centre"
         back
         right={<HeaderIconButton icon="eye-outline" onPress={() => data && navigation.navigate('StoreProfile', { storeIdOrSlug: data.store.slug })} />}
       />
@@ -98,7 +98,7 @@ export function SellerDashboardScreen({ navigation }: Props) {
           <View style={styles.tip}>
             <Ionicons name="bulb-outline" size={20} color={colors.info} />
             <Text style={styles.tipText}>
-              Listings with clear photos, a part number and a fitment list show up for buyers who've saved that vehicle — and get a green “Fits” badge.
+              Listings with clear photos, a part number and a fitment list show up for buyers who’ve saved that vehicle — and get a green “Fits” badge.
             </Text>
           </View>
         </ScrollView>

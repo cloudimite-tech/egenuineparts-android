@@ -3,6 +3,8 @@ import { count, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { categories, products } from '../db/schema';
 import { CATEGORY_TREE, CATEGORY_ORDER } from '../db/category-tree';
+import { and } from 'drizzle-orm';
+import { fromApprovedStore } from '../common/seller-access';
 
 @Injectable()
 export class CategoriesService {
@@ -11,7 +13,7 @@ export class CategoriesService {
     const counts = await db
       .select({ categoryId: products.categoryId, n: count(products.id) })
       .from(products)
-      .where(eq(products.isActive, true))
+      .where(and(eq(products.isActive, true), fromApprovedStore(products.storeId)))
       .groupBy(products.categoryId);
     const direct = new Map(counts.map((c) => [c.categoryId, Number(c.n)]));
 

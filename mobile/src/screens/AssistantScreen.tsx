@@ -20,6 +20,7 @@ import { AssistantReply, Product } from '../types';
 import { GradientHeader } from '../components/GradientHeader';
 import { ProductImage } from '../components/ProductImage';
 import { useAuthStore } from '../store/authStore';
+import { startSelling } from '../utils/selling';
 import { useVehicleStore } from '../store/vehicleStore';
 import { useBrowseFilterStore } from '../store/browseFilterStore';
 import { discountPercent, formatPrice } from '../utils/format';
@@ -32,7 +33,7 @@ type Msg =
 
 const WELCOME: AssistantReply = {
   reply:
-    "Hi! I'm the Genuine Parts.lk assistant \u{1F44B}\nTell me the part you need — like “brake pads for Axio 2016” or a part number — and I'll find it. I can also help with orders, delivery, payments and selling.",
+    "Hi! I’m the Genuine Parts.lk assistant \u{1F44B}\nTell me the part you need — like “brake pads for Axio 2016” or a part number — and I’ll find it. I can also help with orders, delivery, payments and selling.",
   quickReplies: ['Brake pads for Axio 2016', 'Show today’s deals', 'Track my order', 'How does delivery work?', 'How do I sell?'],
 };
 
@@ -89,7 +90,7 @@ export function AssistantScreen({ navigation }: Props) {
       case 'sign_in':
         return navigation.navigate('Welcome');
       case 'open_sell':
-        return profile?.store ? navigation.navigate('SellerDashboard') : navigation.navigate('StoreSetup', { mode: 'create' });
+        return startSelling(navigation);
       case 'open_deals':
         setOnSaleOnly(true);
         return navigation.navigate('Main', { screen: 'Home' });

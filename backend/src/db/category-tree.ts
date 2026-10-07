@@ -18,7 +18,7 @@ export const CATEGORY_TREE: CategoryDef[] = [
     ],
   },
   {
-    name: 'Electric Parts', slug: 'electric-parts', icon: 'electric',
+    name: 'Electrical Parts', slug: 'electric-parts', icon: 'electric',
     children: [
       { name: 'Horn', slug: 'horn' },
       { name: 'Ignition Coil', slug: 'ignition-coil' },
@@ -41,7 +41,7 @@ export const CATEGORY_TREE: CategoryDef[] = [
     ],
   },
   {
-    name: 'Gear Box Parts', slug: 'gear-box-parts', icon: 'gearbox',
+    name: 'Gearbox Parts', slug: 'gear-box-parts', icon: 'gearbox',
     children: [
       { name: 'Clutch Repair Kits', slug: 'clutch-repair-kits' },
       { name: 'Clutch Plate', slug: 'clutch-plate' },
@@ -59,7 +59,7 @@ export const CATEGORY_TREE: CategoryDef[] = [
   {
     name: 'Lubricants & Coolants', slug: 'lubricants-coolants', icon: 'lubricants',
     children: [
-      { name: 'Gear Box Oil', slug: 'gear-box-oil' },
+      { name: 'Gearbox Oil', slug: 'gear-box-oil' },
       { name: 'Engine Oil', slug: 'engine-oil' },
       { name: 'Coolant', slug: 'coolant' },
     ],

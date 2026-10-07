@@ -93,7 +93,7 @@ export function CartScreen({ navigation }: Props) {
         <EmptyState
           icon="cart-outline"
           title="Your cart is empty"
-          message="Find the right part for your vehicle and it'll show up here."
+          message="Find the right part for your vehicle and it’ll show up here."
           actionLabel="Start shopping"
           onAction={() => navigation.navigate('Main', { screen: 'Home' })}
         />

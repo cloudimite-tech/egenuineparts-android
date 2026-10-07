@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { shareProduct } from '../utils/share';
 import {
   ActivityIndicator,
   FlatList,
@@ -158,6 +159,9 @@ export function ProductDetailScreen({ route, navigation }: Props) {
             )}
           />
           <BackFab onPress={() => navigation.goBack()} />
+          <TouchableOpacity style={[styles.fab, { right: spacing.md + 52 }]} onPress={() => shareProduct(product)} accessibilityLabel="Share">
+            <Ionicons name="share-social-outline" size={21} color={colors.text} />
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.fab, { right: spacing.md }]} onPress={toggleSave}>
             <Ionicons name={saved ? 'heart' : 'heart-outline'} size={22} color={saved ? colors.accent : colors.text} />
           </TouchableOpacity>
@@ -211,7 +215,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
               <Ionicons name="checkmark-circle" size={22} color="#4ADE80" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.fitTitle}>Fits your {vehicleLabel(vehicle)}</Text>
-                <Text style={styles.fitSub}>Confirmed by the seller's fitment list</Text>
+                <Text style={styles.fitSub}>Confirmed by the seller’s fitment list</Text>
               </View>
             </View>
           ) : vehicle && fit === false ? (

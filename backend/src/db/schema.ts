@@ -9,6 +9,8 @@ import {
   numeric,
   uniqueIndex,
   primaryKey,
+  customType,
+  doublePrecision,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { createId } from '../common/id';
@@ -24,6 +26,16 @@ export const orderStatusEnum = pgEnum('order_status', [
   'CANCELLED',
 ]);
 export const currencyEnum = pgEnum('currency', ['LKR', 'USD']);
+// Seller applications are reviewed by an admin before the store can sell.
+export const sellerStatusEnum = pgEnum('seller_status', ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']);
+// Verification files a seller uploads with their application.
+export const sellerDocKindEnum = pgEnum('seller_doc_kind', ['BR', 'NIC_FRONT', 'NIC_BACK', 'SELFIE']);
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+});
 
 export const productConditionEnum = pgEnum('product_condition', [
   'NEW',
@@ -38,6 +50,11 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   fullName: varchar('full_name', { length: 255 }).notNull(),
   role: userRoleEnum('role').notNull().default('BUYER'),
+  // Personal / delivery address (required at sign-up for buyers & sellers).
+  addressLine1: varchar('address_line1', { length: 255 }),
+  addressLine2: varchar('address_line2', { length: 255 }),
+  city: varchar('city', { length: 100 }),
+  district: varchar('district', { length: 100 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -51,6 +68,43 @@ export const stores = pgTable('stores', {
   verified: boolean('verified').notNull().default(false),
   shipsFrom: varchar('ships_from', { length: 255 }),
   returnsPolicy: text('returns_policy'),
+  // ---- seller application (reviewed by an admin) ----
+  status: sellerStatusEnum('status').notNull().default('PENDING'),
+  businessName: varchar('business_name', { length: 255 }),
+  brNumber: varchar('br_number', { length: 64 }),
+  addressLine1: varchar('address_line1', { length: 255 }),
+  addressLine2: varchar('address_line2', { length: 255 }),
+  city: varchar('city', { length: 100 }),
+  district: varchar('district', { length: 100 }),
+  contactPhone: varchar('contact_phone', { length: 32 }),
+  brDocumentId: text('br_document_id'),
+  // Owner identity + where the shop actually is (verified by the admin).
+  nicNumber: varchar('nic_number', { length: 20 }),
+  nicFrontDocumentId: text('nic_front_document_id'),
+  nicBackDocumentId: text('nic_back_document_id'),
+  selfieDocumentId: text('selfie_document_id'),
+  latitude: doublePrecision('latitude'),
+  longitude: doublePrecision('longitude'),
+  submittedAt: timestamp('submitted_at'),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewedById: text('reviewed_by_id'),
+  reviewNote: text('review_note'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Business-registration documents. Kept in the database (not the public
+// photo store) and only ever served to admins through short-lived links.
+export const sellerDocuments = pgTable('seller_documents', {
+  id: id(),
+  ownerId: text('owner_id').notNull().references(() => users.id),
+  kind: sellerDocKindEnum('kind').notNull().default('BR'),
+  fileName: varchar('file_name', { length: 255 }).notNull(),
+  mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  size: integer('size').notNull(),
+  data: bytea('data').notNull(),
+  // For the shop selfie: where the phone was when it was taken.
+  capturedLat: doublePrecision('captured_lat'),
+  capturedLng: doublePrecision('captured_lng'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

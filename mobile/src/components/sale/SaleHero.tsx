@@ -34,7 +34,7 @@ const MODE_META: Record<Highlights['mode'], { overline: string; icon: keyof type
 // Always-on promo slides so the hero is never empty (and adds variety).
 const PROMOS: Slide[] = [
   { key: 'promo-cod', kind: 'promo', colors: PURPLE, icon: 'cash-fast', title: 'Cash on delivery, island-wide', subtitle: 'Order today — pay when your parts arrive.', cta: 'Shop deals', target: 'deals' },
-  { key: 'promo-sell', kind: 'promo', colors: DARK, icon: 'storefront-outline', title: 'Sell your parts on Genuine Parts.lk', subtitle: 'Open a free store in minutes.', cta: 'Start selling', target: 'sell' },
+  { key: 'promo-sell', kind: 'promo', colors: DARK, icon: 'storefront-outline', title: 'Sell your parts on Genuine Parts.lk', subtitle: 'Verified stores reach buyers island-wide.', cta: 'Become a seller', target: 'sell' },
 ];
 
 export function SaleHero({

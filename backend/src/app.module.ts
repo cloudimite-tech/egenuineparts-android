@@ -14,6 +14,10 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { SellerModule } from './seller/seller.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { AppConfigModule } from './config-api/config.module';
+import { SellerApplicationModule } from './seller-application/seller-application.module';
+import { AdminModule } from './admin/admin.module';
+import { ShareModule } from './share/share.module';
+import { GeoModule } from './geo/geo.module';
 
 @Module({
   imports: [
@@ -32,6 +36,10 @@ import { AppConfigModule } from './config-api/config.module';
     SellerModule,
     AssistantModule,
     AppConfigModule,
+    SellerApplicationModule,
+    AdminModule,
+    ShareModule,
+    GeoModule,
   ],
 })
 export class AppModule {}

@@ -43,6 +43,15 @@ export function CheckoutScreen({ route, navigation }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Default to the address on the account (required at sign-up)…
+    if (profile?.addressLine1) {
+      setAddressLine1(profile.addressLine1);
+      setAddressLine2(profile.addressLine2 ?? '');
+      setCity(profile.city ?? '');
+      setDistrict(profile.district ?? '');
+      return;
+    }
+    // …otherwise whatever was used last time.
     AsyncStorage.getItem(ADDRESS_KEY)
       .then((raw) => {
         if (!raw) return;

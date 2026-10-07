@@ -58,7 +58,7 @@ export function WriteReviewScreen({ route, navigation }: Props) {
             label="Your review"
             optional
             multiline
-            placeholder="Did it fit? How's the quality? Would you buy from this seller again?"
+            placeholder="Did it fit? How’s the quality? Would you buy from this seller again?"
             value={comment}
             onChangeText={setComment}
             maxLength={1000}
@@ -66,7 +66,7 @@ export function WriteReviewScreen({ route, navigation }: Props) {
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button title="Submit review" onPress={submit} loading={saving} />
         </View>
-        <Text style={styles.note}>Reviews show your first name and last initial, with a "Verified purchase" badge.</Text>
+        <Text style={styles.note}>Reviews show your first name and last initial, with a “Verified purchase” badge.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );

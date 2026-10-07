@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { findShareLinks } from '../utils/share';
+import { useNoScreenshots } from '../utils/useNoScreenshots';
 import {
   ActivityIndicator,
   FlatList,
@@ -31,6 +33,7 @@ const QUICK_BUYER = ['Is this in stock?', 'Will it fit my vehicle?', 'Is it genu
 const QUICK_SELLER = ['Yes, in stock.', 'Please share your chassis code.', 'It fits — confirmed.'];
 
 export function ChatConversationScreen({ route, navigation }: Props) {
+  useNoScreenshots('chat');
   const { conversationId } = route.params;
   const insets = useSafeAreaInsets();
   const { user, token } = useAuthStore();
@@ -186,7 +189,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
             <View style={styles.safety}>
               <Ionicons name="shield-checkmark-outline" size={18} color={colors.info} />
               <Text style={styles.safetyText}>
-                Keep it on Genuine Parts.lk. Phone numbers, emails, links and requests to deal outside the app are blocked — so every sale stays protected.
+                Keep it on Genuine Parts.lk. Phone numbers, emails, social media, outside links and requests to deal outside the app are blocked, and screenshots are disabled. You can share Genuine Parts.lk product links.
               </Text>
             </View>
           }
@@ -211,12 +214,29 @@ export function ChatConversationScreen({ route, navigation }: Props) {
                     <Text style={[styles.bubbleText, mine && !blocked && { color: colors.white }, blocked && styles.blockedText]}>
                       {m.body}
                     </Text>
+                    {!blocked
+                      ? findShareLinks(m.body).map((l) => (
+                          <TouchableOpacity
+                            key={l.kind + l.key}
+                            style={[styles.linkChip, mine && styles.linkChipMine]}
+                            onPress={() =>
+                              l.kind === 'product'
+                                ? navigation.push('ProductDetail', { productId: l.key })
+                                : navigation.push('StoreProfile', { storeIdOrSlug: l.key })
+                            }
+                          >
+                            <Ionicons name={l.kind === 'product' ? 'pricetag-outline' : 'storefront-outline'} size={14} color={mine ? colors.white : colors.navy} />
+                            <Text style={[styles.linkChipText, mine && { color: colors.white }]}>{l.kind === 'product' ? 'View product' : 'Visit store'}</Text>
+                            <Ionicons name="chevron-forward" size={14} color={mine ? colors.white : colors.navy} />
+                          </TouchableOpacity>
+                        ))
+                      : null}
                   </View>
                   <View style={styles.metaRow}>
                     {blocked ? (
                       <>
                         <Ionicons name="alert-circle-outline" size={13} color={colors.accent} />
-                        <Text style={[styles.meta, { color: colors.accent, fontWeight: '700' }]}>Not sent — contains contact details</Text>
+                        <Text style={[styles.meta, { color: colors.accent, fontWeight: '700' }]}>Not sent — contact details aren’t allowed</Text>
                       </>
                     ) : (
                       <>
@@ -273,6 +293,9 @@ export function ChatConversationScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  linkChip: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.navySoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  linkChipMine: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  linkChipText: { fontWeight: '800', fontSize: 12, color: colors.navy },
   header: {
     backgroundColor: colors.headerBg,
     paddingTop: HEADER_TOP,

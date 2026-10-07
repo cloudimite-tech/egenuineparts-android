@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/client';
-import { cartItems, orderItems, orders, productImages, products } from '../db/schema';
+import { cartItems, orderItems, orders, productImages, products, stores } from '../db/schema';
 import { CreateOrderDto } from './dto/order.dto';
 import { refreshOrderStatus, restock } from './order-status';
 import { effectivePrice, rateFor, toLkr } from '../products/pricing';
@@ -27,18 +27,27 @@ export class OrdersService {
 
     for (const i of items) {
       if (!i.product.isActive) {
-        throw new BadRequestException(`"${i.product.title}" is no longer available. Remove it from your cart.`);
+        throw new BadRequestException(`“${i.product.title}” is no longer available. Remove it from your cart.`);
       }
       if (i.product.stock < i.quantity) {
         throw new BadRequestException(
           i.product.stock === 0
-            ? `"${i.product.title}" is out of stock.`
-            : `Only ${i.product.stock} left of "${i.product.title}".`,
+            ? `“${i.product.title}” is out of stock.`
+            : `Only ${i.product.stock} left of “${i.product.title}”.`,
         );
       }
     }
 
     const storeIds = new Set(items.map((i) => i.product.storeId));
+    const activeStores = await db.query.stores.findMany({
+      where: inArray(stores.id, [...storeIds]),
+      columns: { id: true, status: true },
+    });
+    for (const i of items) {
+      if (activeStores.find((s) => s.id === i.product.storeId)?.status !== 'APPROVED') {
+        throw new BadRequestException(`“${i.product.title}” is no longer available. Remove it from your cart.`);
+      }
+    }
     const subtotal =
       Math.round(items.reduce((s, i) => s + toLkr(effectivePrice(i.product), i.product.currency) * i.quantity, 0) * 100) / 100;
     const deliveryFee = storeIds.size * DELIVERY_FEE_PER_SELLER;

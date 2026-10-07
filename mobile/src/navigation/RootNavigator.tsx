@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { DefaultTheme, LinkingOptions, NavigationContainer } from '@react-navigation/native';
+import { SERVER_ORIGIN } from '../api/config';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { colors } from '../theme/theme';
@@ -31,8 +32,26 @@ import { StoreSetupScreen } from '../screens/seller/StoreSetupScreen';
 import { SellerProductsScreen } from '../screens/seller/SellerProductsScreen';
 import { ProductFormScreen } from '../screens/seller/ProductFormScreen';
 import { SellerOrdersScreen } from '../screens/seller/SellerOrdersScreen';
+import { SellerGateScreen } from '../screens/seller/SellerGateScreen';
+import { SellerApplicationScreen } from '../screens/seller/SellerApplicationScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { AdminDashboardScreen } from '../screens/admin/AdminDashboardScreen';
+import { AdminSellerDetailScreen } from '../screens/admin/AdminSellerDetailScreen';
+import { toast } from '../store/toastStore';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Shared links open straight in the app: genuineparts://p/<id> (from the
+// share page's "Open in the app" button) and https://…/p/<id> (App Links).
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['genuineparts://', SERVER_ORIGIN, 'https://genuineparts.lk', 'https://www.genuineparts.lk'],
+  config: {
+    screens: {
+      ProductDetail: 'p/:productId',
+      StoreProfile: 's/:storeIdOrSlug',
+    },
+  },
+};
 
 const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.accent } };
 
@@ -65,14 +84,56 @@ function SessionSync() {
   return null;
 }
 
+// Seller accounts only get the app once an admin approves their store.
+// 'unknown' = a seller session saved before approval status existed; we
+// fetch the profile before deciding, so approved sellers never see the lock.
+function useSellerGate(): 'open' | 'locked' | 'unknown' {
+  const { isGuest, user, profile } = useAuthStore();
+  const role = profile?.role ?? user?.role;
+  const status = profile?.sellerStatus ?? user?.sellerStatus;
+  const gate = isGuest || role !== 'SELLER' ? 'open' : status == null ? 'unknown' : status === 'APPROVED' ? 'open' : 'locked';
+
+  // Celebrate the moment an admin approves the store.
+  const prev = React.useRef(status);
+  useEffect(() => {
+    if (prev.current && prev.current !== 'APPROVED' && status === 'APPROVED') toast.success('Your store is approved — welcome aboard!');
+    prev.current = status;
+  }, [status]);
+  return gate;
+}
+
+function CheckingAccount() {
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  const [failed, setFailed] = React.useState(false);
+  const check = () => {
+    setFailed(false);
+    refreshProfile().then((p) => !p && setFailed(true));
+  };
+  useEffect(check, []);
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.headerBg, gap: 16 }}>
+      {failed ? (
+        <Text style={{ color: colors.white, fontWeight: '700' }} onPress={check}>
+          Couldn’t reach the server. Tap to retry.
+        </Text>
+      ) : (
+        <ActivityIndicator color={colors.accent} />
+      )}
+    </View>
+  );
+}
+
 export function RootNavigator() {
   const { hydrate, hydrated } = useAuthStore();
+  const sellerGate = useSellerGate();
 
   useEffect(() => {
     hydrate();
     useVehicleStore.getState().hydrate();
     useConfigStore.getState().load();
   }, []);
+
+  if (hydrated && sellerGate === 'unknown') return <CheckingAccount />;
 
   if (!hydrated) {
     return (
@@ -83,10 +144,17 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} linking={linking}>
       <SessionSync />
       {/* Opens straight into browsing — sign-in is only asked for when needed. */}
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }} initialRouteName="Main">
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        {sellerGate === 'locked' ? (
+          <>
+            <Stack.Screen name="SellerGate" component={SellerGateScreen} />
+            <Stack.Screen name="SellerApplication" component={SellerApplicationScreen} />
+          </>
+        ) : (
+          <>
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="Signup" component={SignupScreen} options={{ animation: 'slide_from_bottom' }} />
@@ -106,6 +174,13 @@ export function RootNavigator() {
         <Stack.Screen name="SellerProducts" component={SellerProductsScreen} />
         <Stack.Screen name="ProductForm" component={ProductFormScreen} />
         <Stack.Screen name="SellerOrders" component={SellerOrdersScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="SellerGate" component={SellerGateScreen} />
+        <Stack.Screen name="SellerApplication" component={SellerApplicationScreen} />
+        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+        <Stack.Screen name="AdminSellerDetail" component={AdminSellerDetailScreen} />
+          </>
+        )}
       </Stack.Navigator>
       <ToastHost />
     </NavigationContainer>

@@ -24,6 +24,7 @@ import {
   UpdateProductDto,
 } from './dto/product.dto';
 import { discountPct, presentPrice } from './pricing';
+import { fromApprovedStore, requireApprovedStore } from '../common/seller-access';
 
 type Fitment = { make: string; model: string; yearFrom: number; yearTo: number };
 
@@ -85,7 +86,8 @@ export class ProductsService {
   }
 
   async list(query: ProductQueryDto) {
-    const conditions = [eq(products.isActive, true)] as any[];
+    // Only listings from admin-approved stores are ever shown to buyers.
+    const conditions = [eq(products.isActive, true), fromApprovedStore(products.storeId)] as any[];
     if (query.categoryId) {
       conditions.push(inArray(products.categoryId, await this.categoryWithDescendants(query.categoryId)));
     }
@@ -153,7 +155,7 @@ export class ProductsService {
         category: true,
       },
     });
-    if (!product) throw new NotFoundException('Product not found.');
+    if (!product || product.store.status !== 'APPROVED') throw new NotFoundException('Product not found.');
 
     const [ratings, sold] = await Promise.all([this.ratingsFor([id]), this.soldCounts([id])]);
 
@@ -178,7 +180,11 @@ export class ProductsService {
       .innerJoin(products, eq(reviews.productId, products.id))
       .where(eq(products.storeId, product.storeId));
 
-    const { ownerId, ...publicStore } = product.store;
+    const publicStore = {
+      id: product.store.id, name: product.store.name, slug: product.store.slug, bio: product.store.bio,
+      logoUrl: product.store.logoUrl, verified: product.store.verified, shipsFrom: product.store.shipsFrom,
+      returnsPolicy: product.store.returnsPolicy, createdAt: product.store.createdAt,
+    };
     return {
       ...presentPrice(product),
       store: {
@@ -295,9 +301,7 @@ export class ProductsService {
   }
 
   private async getOwnStoreOrThrow(userId: string) {
-    const store = await db.query.stores.findFirst({ where: eq(stores.ownerId, userId) });
-    if (!store) throw new ForbiddenException('Create a store before listing products.');
-    return store;
+    return requireApprovedStore(userId);
   }
 
   private validate(dto: CreateProductDto) {
@@ -313,7 +317,7 @@ export class ProductsService {
       if (new Date(dto.saleEndsAt) <= new Date()) throw new BadRequestException('Sale end date must be in the future.');
     }
     for (const f of dto.fitments ?? []) {
-      if (f.yearFrom > f.yearTo) throw new BadRequestException('Fitment "year from" must be before "year to".');
+      if (f.yearFrom > f.yearTo) throw new BadRequestException('Fitment “year from” must be before “year to”.');
     }
   }
 

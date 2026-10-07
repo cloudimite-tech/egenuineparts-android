@@ -23,6 +23,7 @@ import { ProductGridCard } from '../components/ProductGridCard';
 import { SaleHero } from '../components/sale/SaleHero';
 import { SaleMarquee } from '../components/sale/SaleMarquee';
 import { useAuthStore } from '../store/authStore';
+import { startSelling } from '../utils/selling';
 import { Logo } from '../components/Logo';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { CategoryIcon } from '../components/CategoryIcon';
@@ -206,7 +207,7 @@ export function HomeScreen({ navigation }: Props) {
             else if (target === 'categories') navigation.navigate('Main', { screen: 'Categories' });
             else
               requireAccount(
-                () => (profile?.store ? navigation.navigate('SellerDashboard') : navigation.navigate('StoreSetup', { mode: 'create' })),
+                () => startSelling(navigation),
                 'Create an account to open your store.',
               );
           }}

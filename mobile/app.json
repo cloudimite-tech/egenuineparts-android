@@ -2,7 +2,7 @@
   "expo": {
     "name": "Genuine Parts.lk",
     "slug": "genuine-parts-lk",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "lk.genuineparts.app"
+      "package": "lk.genuineparts.app",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,8 +39,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Genuine Parts.lk needs your photos so you can add pictures of the parts you sell.",
-          "cameraPermission": "Genuine Parts.lk needs the camera so you can photograph the parts you sell."
+          "photosPermission": "Genuine Parts.lk needs access to your photos so you can add pictures of parts and your verification documents.",
+          "cameraPermission": "Genuine Parts.lk needs the camera so you can photograph parts, your documents and a selfie at your shop."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Genuine Parts.lk uses your location to pin your shop on the map and to verify your shop selfie."
         }
       ],
       "./plugins/withProjectJdk"

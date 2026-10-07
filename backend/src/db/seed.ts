@@ -3,6 +3,7 @@
 //   npm run db:categories
 import 'dotenv/config';
 import * as bcrypt from 'bcryptjs';
+import sharp from 'sharp';
 import { sql } from 'drizzle-orm';
 import { db, queryClient } from './client';
 import {
@@ -11,6 +12,7 @@ import {
   messages,
   orderItems,
   orders,
+  sellerDocuments,
   productFitments,
   products,
   reviews,
@@ -27,20 +29,26 @@ async function main() {
   console.log('Resetting and seeding Genuine Parts.lk…');
   await db.execute(sql`TRUNCATE TABLE
     messages, conversations, reviews, wishlist_items, order_items, orders, cart_items,
-    product_images, product_fitments, products, categories, vehicles, stores, users
+    product_images, product_fitments, products, categories, vehicles, stores, seller_documents, users
     RESTART IDENTITY CASCADE`);
 
   const passwordHash = await bcrypt.hash('password123', 10);
-  const user = async (fullName: string, email: string, role: 'BUYER' | 'SELLER', phone?: string) =>
-    (await db.insert(users).values({ fullName, email, phone, passwordHash, role }).returning())[0];
+  type Addr = [line1: string, city: string, district: string];
+  const user = async (fullName: string, email: string, role: 'BUYER' | 'SELLER' | 'ADMIN', phone: string | null, addr?: Addr) =>
+    (await db.insert(users).values({
+      fullName, email, phone, passwordHash, role,
+      addressLine1: addr?.[0], city: addr?.[1], district: addr?.[2],
+    }).returning())[0];
 
   // ---- people ----
-  const kasun = await user('Kasun Perera', 'buyer@genuineparts.lk', 'BUYER', '+94771234567');
-  const rwan = await user('Rwan Silva', 'rwan@example.lk', 'BUYER');
-  const dilani = await user('Dilani Peiris', 'dilani@example.lk', 'BUYER');
-  const cahOwner = await user('Colombo Auto Hub', 'seller@genuineparts.lk', 'SELLER', '+94711234567');
-  const kmsOwner = await user('Kandy Motor Spares', 'kandy@genuineparts.lk', 'SELLER');
-  const llcOwner = await user('Lanka Lube Centre', 'lubecentre@genuineparts.lk', 'SELLER');
+  const kasun = await user('Kasun Perera', 'buyer@genuineparts.lk', 'BUYER', '+94771234567', ['42/3 High Level Road', 'Nugegoda', 'Colombo']);
+  const rwan = await user('Rwan Silva', 'rwan@example.lk', 'BUYER', '+94772000001', ['18 Temple Road', 'Maharagama', 'Colombo']);
+  const dilani = await user('Dilani Peiris', 'dilani@example.lk', 'BUYER', '+94772000002', ['7 Lake Drive', 'Kandy', 'Kandy']);
+  const cahOwner = await user('Colombo Auto Hub', 'seller@genuineparts.lk', 'SELLER', '+94711234567', ['221 Panchikawatta Road', 'Colombo 10', 'Colombo']);
+  const kmsOwner = await user('Kandy Motor Spares', 'kandy@genuineparts.lk', 'SELLER', '+94711000002', ['55 Peradeniya Road', 'Kandy', 'Kandy']);
+  const llcOwner = await user('Lanka Lube Centre', 'lubecentre@genuineparts.lk', 'SELLER', '+94711000003', ['12 Stanley Thilakaratne Mw', 'Nugegoda', 'Colombo']);
+  const admin = await user('Genuine Parts Admin', 'admin@genuineparts.lk', 'ADMIN', null);
+  const applicant = await user('Nimal Fernando', 'newseller@genuineparts.lk', 'SELLER', '+94711000004', ['88 Main Street', 'Galle', 'Galle']);
 
   await db.insert(vehicles).values([
     { userId: kasun.id, make: 'Toyota', model: 'Axio', year: 2016, engine: '1.5 L', chassisCode: 'NZE161', isDefault: true },
@@ -48,14 +56,65 @@ async function main() {
   ]);
 
   // ---- stores ----
-  const store = async (ownerId: string, name: string, slug: string, bio: string, shipsFrom: string, returnsPolicy: string) =>
-    (await db.insert(stores).values({ ownerId, name, slug, bio, shipsFrom, returnsPolicy, verified: true }).returning())[0];
+  // Sample BR certificate image so the admin review screen has something to show.
+  const brImage = async (title: string, br: string) =>
+    sharp(Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850"><rect width="100%" height="100%" fill="#fffdf5"/>` +
+      `<rect x="30" y="30" width="1140" height="790" fill="none" stroke="#2E2D7C" stroke-width="6"/>` +
+      `<text x="600" y="150" font-size="44" text-anchor="middle" font-family="serif" fill="#2E2D7C">CERTIFICATE OF REGISTRATION</text>` +
+      `<text x="600" y="210" font-size="26" text-anchor="middle" font-family="serif">Business Names Ordinance (SAMPLE — demo data)</text>` +
+      `<text x="600" y="380" font-size="40" text-anchor="middle" font-family="serif">${title}</text>` +
+      `<text x="600" y="460" font-size="30" text-anchor="middle" font-family="monospace">Reg. No. ${br}</text></svg>`,
+    )).jpeg({ quality: 80 }).toBuffer();
+  const brDoc = async (ownerId: string, title: string, br: string) => {
+    const data = await brImage(title, br);
+    return (await db.insert(sellerDocuments).values({ ownerId, kind: 'BR', fileName: 'br-certificate.jpg', mimeType: 'image/jpeg', size: data.length, data }).returning({ id: sellerDocuments.id }))[0].id;
+  };
+  // Placeholder NIC / selfie images (clearly marked as demo data).
+  const card = async (lines: string[], bg: string) =>
+    sharp(Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="630"><rect width="100%" height="100%" rx="30" fill="${bg}"/>` +
+      lines.map((l, i) => `<text x="60" y="${140 + i * 90}" font-size="${i === 0 ? 48 : 38}" font-family="sans-serif" fill="#1C1B54">${l}</text>`).join('') +
+      `<text x="60" y="580" font-size="28" font-family="sans-serif" fill="#A81D21">SAMPLE — demo data</text></svg>`,
+    )).jpeg({ quality: 80 }).toBuffer();
+  const kycDocs = async (ownerId: string, name: string, nic: string, lat: number, lng: number) => {
+    const put = async (kind: 'NIC_FRONT' | 'NIC_BACK' | 'SELFIE', data: Buffer, extra = {}) =>
+      (await db.insert(sellerDocuments).values({ ownerId, kind, fileName: `${kind.toLowerCase()}.jpg`, mimeType: 'image/jpeg', size: data.length, data, ...extra }).returning({ id: sellerDocuments.id }))[0].id;
+    return {
+      nicNumber: nic,
+      nicFrontDocumentId: await put('NIC_FRONT', await card(['NATIONAL IDENTITY CARD', name, `No. ${nic}`], '#E8F0E3')),
+      nicBackDocumentId: await put('NIC_BACK', await card(['NIC — reverse side', 'Address on file'], '#E8F0E3')),
+      selfieDocumentId: await put('SELFIE', await card(['Selfie at the shop', name], '#FDECEC'), { capturedLat: lat + 0.0004, capturedLng: lng + 0.0003 }),
+      latitude: lat,
+      longitude: lng,
+    };
+  };
+
+  const store = async (ownerId: string, name: string, slug: string, bio: string, shipsFrom: string, returnsPolicy: string, br: string, district: string, nic: string, lat: number, lng: number) =>
+    (await db.insert(stores).values({
+      ownerId, name, slug, bio, shipsFrom, returnsPolicy, verified: true,
+      ...(await kycDocs(ownerId, name, nic, lat, lng)),
+      status: 'APPROVED', businessName: `${name} (Pvt) Ltd`, brNumber: br,
+      addressLine1: 'Main showroom', city: shipsFrom, district, contactPhone: '+94112000000',
+      brDocumentId: await brDoc(ownerId, `${name} (Pvt) Ltd`, br),
+      submittedAt: new Date(Date.now() - 30 * 86400000), reviewedAt: new Date(Date.now() - 29 * 86400000), reviewedById: admin.id,
+    }).returning())[0];
   const cah = await store(cahOwner.id, 'Colombo Auto Hub', 'colombo-auto-hub',
-    'Genuine Toyota, Honda and Nissan parts since 2019.', 'Colombo 10', '7 days, unused parts');
+    'Genuine Toyota, Honda and Nissan parts since 2019.', 'Colombo 10', '7 days, unused parts', 'PV 00123456', 'Colombo', '198512345678', 6.9376, 79.8653);
   const kms = await store(kmsOwner.id, 'Kandy Motor Spares', 'kandy-motor-spares',
-    'Brake, suspension, gearbox and engine specialists for Japanese cars.', 'Kandy', '7 days, unused parts');
+    'Brake, suspension, gearbox and engine specialists for Japanese cars.', 'Kandy', '7 days, unused parts', 'KY/BN/2018/4411', 'Kandy', '791234567V', 7.2906, 80.6337);
   const llc = await store(llcOwner.id, 'Lanka Lube Centre', 'lanka-lube-centre',
-    'Lubricants, coolants, filters and accessories — Mobil, Castrol, Shell and more.', 'Nugegoda', '3 days, sealed only');
+    'Lubricants, coolants, filters and accessories — Mobil, Castrol, Shell and more.', 'Nugegoda', '3 days, sealed only', 'WCP/2020/1187', 'Colombo', '199023456789', 6.8728, 79.8878);
+
+  // A seller application waiting for the admin, to try the review flow.
+  await db.insert(stores).values({
+    ownerId: applicant.id, name: 'Galle Auto Parts', slug: 'galle-auto-parts', shipsFrom: 'Galle',
+    bio: 'Used and reconditioned parts for Japanese vehicles.', status: 'PENDING',
+    businessName: 'Galle Auto Parts', brNumber: 'GL/BN/2026/0091', addressLine1: '88 Main Street', city: 'Galle',
+    district: 'Galle', contactPhone: '+94911000004', brDocumentId: await brDoc(applicant.id, 'Galle Auto Parts', 'GL/BN/2026/0091'),
+    ...(await kycDocs(applicant.id, 'Nimal Fernando', '880345678V', 6.0329, 80.2168)),
+    submittedAt: new Date(Date.now() - 2 * 3600000),
+  });
 
   // ---- categories (shared definition with `npm run db:categories`) ----
   const sub: Record<string, string> = {};
@@ -131,7 +190,7 @@ async function main() {
   await product(llc.id, 'wiper-blades', 'Bosch', 'Aerotwin Wiper Blades 26" + 14" (imported)', 23, { currency: 'USD', compareAt: 26.5, stock: 20, fits: [AXIO, FIELDER] });
   await product(cah.id, 'vip-lights', 'Osram', 'LED VIP Interior Lights Kit (imported)', 14, { currency: 'USD', stock: 12 });
   // Lubricants & coolants
-  const atf = await product(llc.id, 'gear-box-oil', 'Toyota Genuine', 'ATF WS Gear Box Oil, 4 L', 11500, { stock: 9, fits: [AXIO, PREMIO, AQUA] });
+  const atf = await product(llc.id, 'gear-box-oil', 'Toyota Genuine', 'ATF WS Gearbox Oil, 4 L', 11500, { stock: 9, fits: [AXIO, PREMIO, AQUA] });
   const mobil = await product(llc.id, 'engine-oil', 'Mobil 1', 'Engine Oil 5W-30 Fully Synthetic, 4 L', 12800, {
     compareAt: 13900, stock: 30, description: 'Fully synthetic 5W-30 for petrol and hybrid engines. API SP / ILSAC GF-6A.',
   });
@@ -203,6 +262,8 @@ async function main() {
   console.log('  Seller  seller@genuineparts.lk      Colombo Auto Hub — has a pending order to ship');
   console.log('  Seller  kandy@genuineparts.lk       Kandy Motor Spares');
   console.log('  Seller  lubecentre@genuineparts.lk  Lanka Lube Centre');
+  console.log('  Seller  newseller@genuineparts.lk   Galle Auto Parts — application PENDING admin review');
+  console.log('  Admin   admin@genuineparts.lk       approves / rejects seller applications');
 }
 
 main()
