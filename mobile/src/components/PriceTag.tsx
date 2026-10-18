@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/theme';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Themed';
+import { colors, themed } from '../theme/theme';
 import { discountPercent, formatPrice } from '../utils/format';
 import { toLkr, useConfigStore } from '../store/configStore';
 
@@ -51,7 +52,7 @@ export function UsdHint({ amount, currency, style }: { amount: string | number; 
   return <Text style={[styles.lkr, style]}>≈ {formatPrice(toLkr(amount, 'USD', rate), 'LKR')}</Text>;
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 6 },
   price: { fontSize: 17, fontWeight: '900', color: colors.text, letterSpacing: -0.3 },
   sm: { fontSize: 15 },
@@ -61,4 +62,4 @@ const styles = StyleSheet.create({
   offText: { color: colors.white, fontSize: 12, fontWeight: '800' },
   lkr: { fontSize: 11, color: colors.textMuted, fontWeight: '600', marginTop: 1 },
   lkrLg: { fontSize: 14, marginTop: 2 },
-});
+}));

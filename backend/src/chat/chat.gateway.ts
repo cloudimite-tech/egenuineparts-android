@@ -10,8 +10,10 @@ import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { JwtUser } from '../common/decorators/current-user.decorator';
+import { sessionState } from '../security/session-check';
 
-@WebSocketGateway({ namespace: '/chat', cors: { origin: '*' } })
+// The mobile app connects natively (no browser), so cross-site browser access is refused.
+@WebSocketGateway({ namespace: '/chat', cors: { origin: false } })
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer() server: Server;
 
@@ -21,16 +23,26 @@ export class ChatGateway implements OnGatewayConnection {
   ) {}
 
   handleConnection(client: Socket) {
+    // Events can arrive before the async account check finishes; handlers wait on this.
+    client.data.ready = this.authenticate(client);
+    return client.data.ready;
+  }
+
+  private async authenticate(client: Socket) {
     try {
       const token =
         (client.handshake.auth?.token as string) ||
         (client.handshake.headers.authorization?.replace('Bearer ', '') ?? '');
-      const payload = this.jwt.verify<JwtUser>(token);
+      const payload = this.jwt.verify<JwtUser & { typ?: string }>(token);
+      if (payload.typ) throw new Error('not a session');
       if (payload.role === 'GUEST') {
         client.emit('chat_error', { message: 'Sign in to use chat.' });
         client.disconnect();
         return;
       }
+      // Same checks as the REST API: banned / deleted / signed-out-everywhere.
+      const state = await sessionState(payload.sub);
+      if (!state.ok || (payload.tv ?? 0) !== state.tv) throw new Error('session revoked');
       client.data.user = payload;
       // Personal room: inbox/badge updates reach the user on any screen.
       client.join(`user:${payload.sub}`);
@@ -49,6 +61,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   @SubscribeMessage('join_conversation')
   async onJoin(@ConnectedSocket() client: Socket, @MessageBody() data: { conversationId: string }) {
+    await client.data.ready;
     const user: JwtUser | undefined = client.data.user;
     if (!user) return;
     try {
@@ -69,6 +82,7 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { conversationId: string; body: string; clientId?: string },
   ) {
+    await client.data.ready;
     const user: JwtUser | undefined = client.data.user;
     if (!user) return;
     try {

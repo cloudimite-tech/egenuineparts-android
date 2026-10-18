@@ -1,4 +1,4 @@
-// The Genuine Parts.lk category tree. Order here is the order shown in the app.
+// The AutoGuide category tree. Order here is the order shown in the app.
 // `icon` on a parent is the key the mobile app maps to a glyph.
 export interface CategoryDef {
   name: string;

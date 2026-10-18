@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { SheetModal } from './SheetModal';
 import { SRI_LANKA_DISTRICTS } from '../utils/format';
 
@@ -35,14 +36,14 @@ export function DistrictSelect({ value, onChange, error, label = 'District' }: {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   label: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 6 },
   select: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14, minHeight: 50, backgroundColor: colors.white,
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14, minHeight: 50, backgroundColor: colors.surface,
   },
   text: { fontSize: 15, color: colors.text },
   err: { color: colors.accent, fontSize: 12, marginTop: 6 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.divider },
   rowText: { fontSize: 16, color: colors.text },
-});
+}));

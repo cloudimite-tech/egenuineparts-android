@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // Where the API lives, in priority order:
-//  1. EXPO_PUBLIC_API_URL (e.g. https://api.genuineparts.lk) — set this for
+//  1. EXPO_PUBLIC_API_URL (e.g. https://api.autoguide.lk) — set this for
 //     staging/production builds.
 //  2. The same machine that's serving the Expo bundle. Expo already knows
 //     that host (e.g. 192.168.1.152), and it's reachable from the Android

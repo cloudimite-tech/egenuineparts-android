@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../../navigation/types';
-import { colors, radius, spacing } from '../../theme/theme';
+import { colors, radius, spacing, themed } from '../../theme/theme';
 import { apiClient } from '../../api/client';
 import { Store } from '../../types';
 import { Header } from '../../components/Header';
@@ -111,7 +112,7 @@ export function StoreSetupScreen({ route, navigation }: Props) {
           <View style={styles.note}>
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.info} />
             <Text style={styles.noteText}>
-              Don’t add phone numbers, emails or social links to your store — buyers contact you through Genuine Parts.lk chat, and delivery details arrive with each order.
+              Don’t add phone numbers, emails or social links to your store — buyers contact you through AutoGuide chat, and delivery details arrive with each order.
             </Text>
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -124,13 +125,13 @@ export function StoreSetupScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  intro: { flexDirection: 'row', gap: 14, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4, alignItems: 'center' },
+const styles = themed(() => StyleSheet.create({
+  intro: { flexDirection: 'row', gap: 14, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4, alignItems: 'center' },
   introTitle: { fontWeight: '900', fontSize: 17 },
   introText: { color: colors.textMuted, fontSize: 13, marginTop: 3, lineHeight: 18 },
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, paddingBottom: 0 },
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, paddingBottom: 0 },
   note: { flexDirection: 'row', gap: 10, backgroundColor: colors.infoSoft, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm + 4 },
-  noteText: { flex: 1, color: '#1E3A8A', fontSize: 12, lineHeight: 18 },
+  noteText: { flex: 1, color: colors.info, fontSize: 12, lineHeight: 18 },
   error: { color: colors.accent, fontWeight: '700', marginTop: spacing.md },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.white, padding: spacing.md, paddingTop: spacing.sm + 2, borderTopWidth: 1, borderTopColor: colors.border },
-});
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.surface, padding: spacing.md, paddingTop: spacing.sm + 2, borderTopWidth: 1, borderTopColor: colors.border },
+}));

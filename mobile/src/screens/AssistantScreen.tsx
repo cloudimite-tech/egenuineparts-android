@@ -1,20 +1,11 @@
 import React, { useCallback, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '../components/Themed';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { AssistantReply, Product } from '../types';
 import { GradientHeader } from '../components/GradientHeader';
@@ -33,7 +24,7 @@ type Msg =
 
 const WELCOME: AssistantReply = {
   reply:
-    "Hi! I’m the Genuine Parts.lk assistant \u{1F44B}\nTell me the part you need — like “brake pads for Axio 2016” or a part number — and I’ll find it. I can also help with orders, delivery, payments and selling.",
+    "Hi! I’m the AutoGuide assistant \u{1F44B}\nTell me the part you need — like “brake pads for Axio 2016” or a part number — and I’ll find it. I can also help with orders, delivery, payments and selling.",
   quickReplies: ['Brake pads for Axio 2016', 'Show today’s deals', 'Track my order', 'How does delivery work?', 'How do I sell?'],
 };
 
@@ -112,7 +103,7 @@ export function AssistantScreen({ navigation }: Props) {
           <MaterialCommunityIcons name="robot-happy-outline" size={22} color={colors.white} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headTitle}>Genuine Parts.lk Assistant</Text>
+          <Text style={styles.headTitle}>AutoGuide Assistant</Text>
           <Text style={styles.headSub}>
             {vehicle ? `Shopping for ${vehicle.make} ${vehicle.model} ${vehicle.year}` : 'Finds parts, tracks orders, answers questions'}
           </Text>
@@ -235,7 +226,7 @@ function MiniProduct({ p, onPress }: { p: Product; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { paddingTop: HEADER_TOP, paddingBottom: 12, paddingHorizontal: spacing.md - 4, flexDirection: 'row', alignItems: 'center', gap: 10 },
   botAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   headTitle: { color: colors.white, fontWeight: '800', fontSize: 16 },
@@ -245,7 +236,7 @@ const styles = StyleSheet.create({
   smallAvatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   bubble: { maxWidth: '82%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
   userBubble: { backgroundColor: colors.navy, borderBottomRightRadius: 5 },
-  botBubble: { backgroundColor: colors.white, borderBottomLeftRadius: 5 },
+  botBubble: { backgroundColor: colors.surface, borderBottomLeftRadius: 5 },
   userText: { color: colors.white, fontSize: 15, lineHeight: 21 },
   botText: { color: colors.text, fontSize: 15, lineHeight: 21 },
   action: {
@@ -262,9 +253,9 @@ const styles = StyleSheet.create({
   },
   actionText: { color: colors.accent, fontWeight: '800', fontSize: 13 },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginLeft: 38, marginTop: 10 },
-  quick: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 },
+  quick: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 },
   quickText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  mini: { width: 138, backgroundColor: colors.white, borderRadius: radius.md, padding: 8 },
+  mini: { width: 138, backgroundColor: colors.surface, borderRadius: radius.md, padding: 8 },
   miniImg: { width: 122, height: 96 },
   fits: { position: 'absolute', top: 14, left: 14, flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: colors.success, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 },
   fitsText: { color: colors.white, fontSize: 10, fontWeight: '800' },
@@ -278,10 +269,10 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: spacing.sm + 4,
     paddingTop: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   input: { flex: 1, backgroundColor: colors.bg, borderRadius: 22, paddingHorizontal: 16, height: 44, fontSize: 15, color: colors.text },
   send: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-});
+}));

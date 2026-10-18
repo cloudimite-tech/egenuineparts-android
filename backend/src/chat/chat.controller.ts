@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { NoGuestGuard } from '../common/guards/no-guest.guard';
 import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
@@ -28,6 +28,8 @@ export class ChatController {
 
   @Post('conversations')
   start(@CurrentUser() user: JwtUser, @Body() dto: StartConversationDto) {
+    if (dto.serviceId) return this.chat.startOrGetServiceConversation(user.sub, dto.serviceId);
+    if (!dto.productId) throw new BadRequestException('Choose a product or service to chat about.');
     return this.chat.startOrGetConversation(user.sub, dto.productId);
   }
 
@@ -44,6 +46,16 @@ export class ChatController {
   @Post('conversations/:id/read')
   read(@CurrentUser() user: JwtUser, @Param('id') id: string) {
     return this.chat.markRead(user.sub, id);
+  }
+
+  @Post('conversations/:id/block')
+  block(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.chat.setBlock(user.sub, id, true);
+  }
+
+  @Delete('conversations/:id/block')
+  unblock(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.chat.setBlock(user.sub, id, false);
   }
 
   // REST fallback — same service method as the websocket path, so the

@@ -4,7 +4,7 @@
 // tricks: spelled-out or Sinhala/Tamil digit words, letter-for-digit swaps
 // (O for 0, l for 1), fancy Unicode digits, invisible characters, and
 // numbers split across several messages. Part numbers (e.g. "90915-10003",
-// "04465-12592") are still allowed, and so are Genuine Parts.lk product /
+// "04465-12592") are still allowed, and so are AutoGuide product /
 // store share links (validated separately in the chat service).
 
 const DIGIT_WORDS: Record<string, string> = {
@@ -64,7 +64,7 @@ export interface FilterResult {
 }
 
 const BLOCK_REASON =
-  'For your safety, phone numbers, emails, links, social media and requests to deal outside Genuine Parts.lk aren’t allowed in chat.';
+  'For your safety, phone numbers, emails, links, social media and requests to deal outside AutoGuide aren’t allowed in chat.';
 
 /** Undo the usual disguises so patterns see what a human would read. */
 export function normalize(text: string) {

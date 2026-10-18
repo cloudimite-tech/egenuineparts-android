@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing } from '../theme/theme';
+import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Text } from './Themed';
+import { colors, radius, spacing, themed } from '../theme/theme';
 
 export function Section({
   title,
@@ -34,9 +35,9 @@ export function Section({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     marginHorizontal: spacing.md,
@@ -45,4 +46,4 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm + 2 },
   title: { fontSize: 18, fontWeight: '800', color: colors.text },
   action: { color: colors.accent, fontWeight: '700', fontSize: 14 },
-});
+}));

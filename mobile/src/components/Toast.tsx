@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useToastStore } from '../store/toastStore';
-import { colors, radius } from '../theme/theme';
+import { colors, radius, themed } from '../theme/theme';
 
 export function ToastHost() {
   const { message, kind, id, hide } = useToastStore();
@@ -34,7 +35,7 @@ export function ToastHost() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   toast: {
     position: 'absolute',
     bottom: 100,
@@ -49,4 +50,4 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   text: { color: colors.white, fontWeight: '600', flex: 1, fontSize: 14 },
-});
+}));

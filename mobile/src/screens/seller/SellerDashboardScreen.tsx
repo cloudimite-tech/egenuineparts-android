@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { colors, radius, spacing } from '../../theme/theme';
+import { colors, radius, spacing, themed } from '../../theme/theme';
 import { apiClient } from '../../api/client';
 import { SellerDashboard } from '../../types';
 import { Header, HeaderIconButton } from '../../components/Header';
@@ -19,11 +20,13 @@ export function SellerDashboardScreen({ navigation }: Props) {
   const [failed, setFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const unread = useChatStore((s) => s.unread);
+  const [svc, setSvc] = useState<{ pendingAppointments: number; upcomingAppointments: number; services: number } | null>(null);
 
   const load = useCallback(async () => {
     try {
       const { data } = await apiClient.get<SellerDashboard>('/seller/dashboard');
       setData(data);
+      apiClient.get('/services/mine/summary').then((r) => setSvc(r.data)).catch(() => {});
       setFailed(false);
     } catch {
       setFailed(true);
@@ -71,7 +74,7 @@ export function SellerDashboardScreen({ navigation }: Props) {
               tone={data.stats.pendingOrders ? 'accent' : undefined}
               onPress={() => navigation.navigate('SellerOrders')}
             />
-            <StatCard icon="chatbubbles-outline" value={unread} label="Unread chats" tone={unread ? 'accent' : undefined} onPress={() => navigation.navigate('Main', { screen: 'Messages' })} />
+            <StatCard icon="chatbubbles-outline" value={unread} label="Unread chats" tone={unread ? 'accent' : undefined} onPress={() => navigation.navigate('Messages')} />
             <StatCard icon="pricetag-outline" value={data.stats.activeProducts} label="Active listings" onPress={() => navigation.navigate('SellerProducts')} />
             <StatCard icon="warning-outline" value={data.stats.lowStock} label="Low stock (≤3)" tone={data.stats.lowStock ? 'warn' : undefined} onPress={() => navigation.navigate('SellerProducts')} />
           </View>
@@ -87,10 +90,30 @@ export function SellerDashboardScreen({ navigation }: Props) {
             <Ionicons name="chevron-forward" size={22} color={colors.white} />
           </TouchableOpacity>
 
+          {svc?.pendingAppointments ? (
+            <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.navy }]} onPress={() => navigation.navigate('Appointments', { as: 'seller' })} activeOpacity={0.85}>
+              <View style={[styles.addIcon, { backgroundColor: colors.accent }]}>
+                <Ionicons name="calendar" size={22} color={colors.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addTitle}>{svc.pendingAppointments} appointment request{svc.pendingAppointments === 1 ? '' : 's'}</Text>
+                <Text style={styles.addSub}>Customers are waiting for your reply</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color={colors.white} />
+            </TouchableOpacity>
+          ) : null}
+
           <View style={styles.menu}>
+            <MenuRow icon="construct-outline" label="My services" detail={svc ? `${svc.services}` : undefined} onPress={() => navigation.navigate('SellerServices')} />
+            <MenuRow
+              icon="calendar-outline"
+              label="Appointments"
+              detail={svc ? (svc.pendingAppointments ? `${svc.pendingAppointments} new` : svc.upcomingAppointments ? `${svc.upcomingAppointments} upcoming` : undefined) : undefined}
+              onPress={() => navigation.navigate('Appointments', { as: 'seller' })}
+            />
             <MenuRow icon="cube-outline" label="My listings" detail={`${data.stats.activeProducts}`} onPress={() => navigation.navigate('SellerProducts')} />
             <MenuRow icon="receipt-outline" label="Orders" detail={data.stats.pendingOrders ? `${data.stats.pendingOrders} to ship` : undefined} onPress={() => navigation.navigate('SellerOrders')} />
-            <MenuRow icon="chatbubbles-outline" label="Buyer messages" onPress={() => navigation.navigate('Main', { screen: 'Messages' })} />
+            <MenuRow icon="chatbubbles-outline" label="Buyer messages" onPress={() => navigation.navigate('Messages')} />
             <MenuRow icon="settings-outline" label="Store settings" onPress={() => navigation.navigate('StoreSetup', { mode: 'edit' })} />
             <MenuRow icon="storefront-outline" label="View my store" onPress={() => navigation.navigate('StoreProfile', { storeIdOrSlug: data.store.slug })} last />
           </View>
@@ -141,24 +164,24 @@ function MenuRow({ icon, label, detail, onPress, last }: { icon: keyof typeof Io
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   revenue: { backgroundColor: colors.navy, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.sm + 4 },
   revenueLabel: { color: '#A1A1AA', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
   revenueValue: { color: colors.white, fontSize: 34, fontWeight: '900', marginTop: 4, letterSpacing: -0.8 },
   revenueSub: { color: '#A1A1AA', fontSize: 12, marginTop: 4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm + 4, marginBottom: spacing.sm + 4 },
-  stat: { width: '47.5%', flexGrow: 1, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
+  stat: { width: '47.5%', flexGrow: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md },
   statValue: { fontSize: 28, fontWeight: '900', marginTop: 8 },
   statLabel: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.accent, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
-  addIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  addIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   addTitle: { color: colors.white, fontWeight: '900', fontSize: 16 },
   addSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
-  menu: { backgroundColor: colors.white, borderRadius: radius.md, paddingHorizontal: spacing.md, marginBottom: spacing.sm + 4 },
+  menu: { backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: spacing.md, marginBottom: spacing.sm + 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   rowLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
   rowDetail: { color: colors.textMuted, fontSize: 13 },
   tip: { flexDirection: 'row', gap: 10, backgroundColor: colors.infoSoft, borderRadius: radius.md, padding: spacing.md },
-  tipText: { flex: 1, color: '#1E3A8A', fontSize: 13, lineHeight: 19 },
-});
+  tipText: { flex: 1, color: colors.info, fontSize: 13, lineHeight: 19 },
+}));

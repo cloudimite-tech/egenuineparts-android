@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '../theme/theme';
+import { colors, radius, themed } from '../theme/theme';
 
 export function QuantityStepper({
   value,
@@ -27,7 +28,7 @@ export function QuantityStepper({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -38,4 +39,4 @@ const styles = StyleSheet.create({
   },
   btn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   value: { minWidth: 24, textAlign: 'center', fontWeight: '800', fontSize: 14 },
-});
+}));

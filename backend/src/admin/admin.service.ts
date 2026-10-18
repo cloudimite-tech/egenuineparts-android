@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
-import { orders, products, sellerDocuments, stores, users } from '../db/schema';
+import { adminAudit, conversations, emailCodes, messages, orders, products, rateLimits, reports, reviews, sellerDocuments, services, serviceTypeRequests, stores, users } from '../db/schema';
+import { audit } from './audit';
+import { forgetSession } from '../security/session-check';
 
 type Status = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 const DOC_LINK_TTL = '10m';
@@ -21,12 +23,42 @@ function distanceM(aLat: number, aLng: number, bLat: number, bLng: number) {
 export class AdminService {
   constructor(private readonly jwt: JwtService) {}
 
+  // ---- data retention: verification files aren't kept forever ----
+  private lastCleanup = 0;
+  async cleanup() {
+    if (Date.now() - this.lastCleanup < 60 * 60 * 1000) return;
+    this.lastCleanup = Date.now();
+    const days = (n: number) => new Date(Date.now() - n * 86400000);
+    const keepApproved = Number(process.env.KYC_RETENTION_DAYS || 90);
+    // NIC photos + selfie of approved stores: deleted after KYC_RETENTION_DAYS (BR certificate kept).
+    const approvedOld = await db.select().from(stores).where(and(eq(stores.status, 'APPROVED'), lt(stores.reviewedAt, days(keepApproved))));
+    for (const st of approvedOld) {
+      const ids = [st.nicFrontDocumentId, st.nicBackDocumentId, st.selfieDocumentId].filter(Boolean) as string[];
+      if (!ids.length) continue;
+      await db.delete(sellerDocuments).where(inArray(sellerDocuments.id, ids));
+      await db.update(stores).set({ nicFrontDocumentId: null, nicBackDocumentId: null, selfieDocumentId: null }).where(eq(stores.id, st.id));
+    }
+    // Rejected applications not resubmitted within 30 days: all files deleted.
+    const rejectedOld = await db.select().from(stores).where(and(eq(stores.status, 'REJECTED'), lt(stores.reviewedAt, days(30))));
+    for (const st of rejectedOld) {
+      await db.delete(sellerDocuments).where(eq(sellerDocuments.ownerId, st.ownerId));
+      await db.update(stores).set({ nicFrontDocumentId: null, nicBackDocumentId: null, selfieDocumentId: null, brDocumentId: null }).where(eq(stores.id, st.id));
+    }
+    await db.delete(emailCodes).where(lt(emailCodes.createdAt, days(2)));
+    await db.delete(rateLimits).where(lt(rateLimits.windowStart, days(2)));
+    await db.delete(adminAudit).where(lt(adminAudit.createdAt, days(365)));
+  }
+
   async stats() {
+    await this.cleanup().catch(() => {});
+    const [[openReports]] = await Promise.all([db.select({ n: count() }).from(reports).where(eq(reports.status, 'OPEN'))]);
     const byStatus = await db.select({ status: stores.status, n: count() }).from(stores).groupBy(stores.status);
     const byRole = await db.select({ role: users.role, n: count() }).from(users).groupBy(users.role);
-    const [[p], [o]] = await Promise.all([
+    const [[p], [o], [sv], [sr]] = await Promise.all([
       db.select({ n: count() }).from(products).where(eq(products.isActive, true)),
       db.select({ n: count() }).from(orders),
+      db.select({ n: count() }).from(services).where(eq(services.isActive, true)),
+      db.select({ n: count() }).from(serviceTypeRequests).where(eq(serviceTypeRequests.status, 'PENDING')),
     ]);
     const s = Object.fromEntries(byStatus.map((r) => [r.status, Number(r.n)]));
     const r = Object.fromEntries(byRole.map((x) => [x.role, Number(x.n)]));
@@ -35,6 +67,9 @@ export class AdminService {
       users: { buyers: r.BUYER ?? 0, sellers: r.SELLER ?? 0, admins: r.ADMIN ?? 0 },
       products: Number(p.n),
       orders: Number(o.n),
+      openReports: Number(openReports.n),
+      services: Number(sv.n),
+      serviceRequests: Number(sr.n),
     };
   }
 
@@ -64,6 +99,7 @@ export class AdminService {
   async getSeller(storeId: string, adminId: string) {
     const store = await db.query.stores.findFirst({ where: eq(stores.id, storeId) });
     if (!store) throw new NotFoundException('Application not found.');
+    await audit(adminId, 'view_application', 'store', storeId);
     const owner = await db.query.users.findFirst({ where: eq(users.id, store.ownerId) });
     const docIds = [store.brDocumentId, store.nicFrontDocumentId, store.nicBackDocumentId, store.selfieDocumentId].filter(Boolean) as string[];
     const docs = docIds.length
@@ -140,7 +176,9 @@ export class AdminService {
     const store = await db.query.stores.findFirst({ where: eq(stores.id, storeId) });
     if (!store) throw new NotFoundException('Application not found.');
     if (action === 'reject' && !note?.trim()) throw new BadRequestException('Give the seller a reason.');
-    if (action === 'approve') {
+    // New / resubmitted applications need every document; reinstating a
+    // suspended store doesn't (its NIC/selfie may have been deleted by the retention policy).
+    if (action === 'approve' && (store.status === 'PENDING' || store.status === 'REJECTED')) {
       const missing = [
         !store.brDocumentId && 'BR certificate',
         !store.nicFrontDocumentId && 'NIC (front)',
@@ -157,6 +195,7 @@ export class AdminService {
       .update(stores)
       .set({ status, verified: status === 'APPROVED', reviewedAt: new Date(), reviewedById: adminId, reviewNote: note?.trim() || null })
       .where(eq(stores.id, storeId));
+    await audit(adminId, `store_${status.toLowerCase()}`, 'store', storeId, note);
     // A buyer who applied becomes a seller once approved.
     if (status === 'APPROVED') {
       await db.update(users).set({ role: 'SELLER' }).where(and(eq(users.id, store.ownerId), eq(users.role, 'BUYER')));
@@ -177,5 +216,136 @@ export class AdminService {
     const doc = await db.query.sellerDocuments.findFirst({ where: eq(sellerDocuments.id, docId) });
     if (!doc) throw new NotFoundException('Document not found.');
     return doc;
+  }
+
+  // ---- reports (Google Play UGC moderation) ----
+  async listReports(status: 'OPEN' | 'RESOLVED' | 'DISMISSED' = 'OPEN') {
+    const rows = await db
+      .select({
+        id: reports.id, targetType: reports.targetType, targetId: reports.targetId, targetUserId: reports.targetUserId,
+        reason: reports.reason, details: reports.details, status: reports.status, createdAt: reports.createdAt,
+        resolutionNote: reports.resolutionNote, reporterName: users.fullName, reporterEmail: users.email,
+      })
+      .from(reports)
+      .innerJoin(users, eq(reports.reporterId, users.id))
+      .where(eq(reports.status, status))
+      .orderBy(status === 'OPEN' ? reports.createdAt : desc(reports.resolvedAt))
+      .limit(200);
+    return Promise.all(rows.map(async (r) => ({ ...r, preview: await this.preview(r.targetType, r.targetId), targetUser: await this.userBrief(r.targetUserId) })));
+  }
+
+  private async userBrief(id?: string | null) {
+    if (!id) return null;
+    const u = await db.query.users.findFirst({ where: eq(users.id, id), columns: { id: true, fullName: true, email: true, role: true, bannedAt: true } });
+    if (!u) return null;
+    const [{ n }] = await db.select({ n: count() }).from(reports).where(eq(reports.targetUserId, id));
+    return { ...u, banned: !!u.bannedAt, timesReported: Number(n) };
+  }
+
+  /** A short, human-readable look at the reported thing. */
+  private async preview(type: string, id: string): Promise<{ title: string; body?: string | null; storeId?: string; active?: boolean } | null> {
+    if (type === 'PRODUCT') {
+      const p = await db.query.products.findFirst({ where: eq(products.id, id), with: { store: { columns: { id: true, name: true } } } });
+      return p ? { title: `${p.title} — ${p.store.name}`, body: p.description, storeId: p.store.id, active: p.isActive } : null;
+    }
+    if (type === 'STORE') {
+      const st = await db.query.stores.findFirst({ where: eq(stores.id, id) });
+      return st ? { title: st.name, body: st.bio, storeId: st.id, active: st.status === 'APPROVED' } : null;
+    }
+    if (type === 'REVIEW') {
+      const r = await db.query.reviews.findFirst({ where: eq(reviews.id, id), with: { product: { columns: { title: true } } } });
+      return r ? { title: `${r.rating}★ review on ${r.product.title}`, body: r.comment, active: true } : null;
+    }
+    if (type === 'SERVICE') {
+      const sv = await db.query.services.findFirst({ where: eq(services.id, id), with: { store: { columns: { id: true, name: true } } } });
+      return sv ? { title: `${sv.title} — ${sv.store.name}`, body: sv.description, storeId: sv.store.id, active: sv.isActive } : null;
+    }
+    if (type === 'MESSAGE') {
+      const m = await db.query.messages.findFirst({ where: eq(messages.id, id) });
+      return m ? { title: 'Chat message', body: m.body, active: true } : null;
+    }
+    if (type === 'CONVERSATION') {
+      const last = await db.query.messages.findMany({ where: eq(messages.conversationId, id), orderBy: desc(messages.createdAt), limit: 8 });
+      const c = await db.query.conversations.findFirst({ where: eq(conversations.id, id), with: { product: { columns: { title: true } }, service: { columns: { title: true } } } });
+      return c ? { title: `Conversation about ${c.product?.title ?? c.service?.title ?? 'a listing'}`, body: last.reverse().map((m) => `• ${m.body}`).join('\n'), active: true } : null;
+    }
+    return null;
+  }
+
+  async resolveReport(id: string, adminId: string, action: 'dismiss' | 'remove_content' | 'suspend_store' | 'ban_user', note?: string) {
+    const r = await db.query.reports.findFirst({ where: eq(reports.id, id) });
+    if (!r) throw new NotFoundException('Report not found.');
+    if (action === 'remove_content') {
+      if (r.targetType === 'PRODUCT') await db.update(products).set({ isActive: false }).where(eq(products.id, r.targetId));
+      else if (r.targetType === 'SERVICE') await db.update(services).set({ isActive: false }).where(eq(services.id, r.targetId));
+      else if (r.targetType === 'REVIEW') await db.delete(reviews).where(eq(reviews.id, r.targetId));
+      else if (r.targetType === 'MESSAGE') await db.update(messages).set({ body: 'This message was removed by AutoGuide.', wasFiltered: true }).where(eq(messages.id, r.targetId));
+      else throw new BadRequestException('Nothing to remove for this report — suspend the store or ban the user instead.');
+    }
+    if (action === 'suspend_store') {
+      const ownerStore = r.targetUserId ? await db.query.stores.findFirst({ where: eq(stores.ownerId, r.targetUserId) }) : null;
+      if (!ownerStore) throw new BadRequestException('The reported user has no store.');
+      await this.review(ownerStore.id, adminId, 'reject', note?.trim() || 'Suspended after a user report.');
+    }
+    if (action === 'ban_user') {
+      if (!r.targetUserId) throw new BadRequestException('No user to ban for this report.');
+      await this.banUser(r.targetUserId, adminId, note?.trim() || 'Banned after a user report.');
+    }
+    const status = action === 'dismiss' ? 'DISMISSED' : 'RESOLVED';
+    // Close every open report about the same thing at once.
+    await db
+      .update(reports)
+      .set({ status, resolutionNote: note?.trim() || action, resolvedById: adminId, resolvedAt: new Date() })
+      .where(and(eq(reports.targetType, r.targetType), eq(reports.targetId, r.targetId), eq(reports.status, 'OPEN')));
+    await audit(adminId, `report_${action}`, r.targetType.toLowerCase(), r.targetId, note);
+    return { ok: true, status };
+  }
+
+  // ---- users ----
+  async listUsers(q?: string) {
+    const term = q?.trim();
+    const rows = await db
+      .select({
+        id: users.id, fullName: users.fullName, email: users.email, phone: users.phone, role: users.role, city: users.city,
+        createdAt: users.createdAt, emailVerifiedAt: users.emailVerifiedAt, bannedAt: users.bannedAt, banReason: users.banReason,
+        storeName: stores.name, storeStatus: stores.status,
+      })
+      .from(users)
+      .leftJoin(stores, eq(stores.ownerId, users.id))
+      .where(and(isNull(users.deletedAt), term ? or(ilike(users.email, `%${term}%`), ilike(users.fullName, `%${term}%`), ilike(users.phone, `%${term}%`), ilike(stores.name, `%${term}%`)) : undefined))
+      .orderBy(desc(users.createdAt))
+      .limit(100);
+    return rows.map(({ emailVerifiedAt, bannedAt, ...u }) => ({ ...u, emailVerified: !!emailVerifiedAt, banned: !!bannedAt, bannedAt }));
+  }
+
+  async banUser(userId: string, adminId: string, reason: string) {
+    const u = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    if (!u) throw new NotFoundException('User not found.');
+    if (u.role === 'ADMIN') throw new BadRequestException('Admins can’t be banned here.');
+    await db.update(users).set({ bannedAt: new Date(), banReason: reason, tokenVersion: sql`${users.tokenVersion} + 1` }).where(eq(users.id, userId));
+    forgetSession(userId);
+    // A banned seller's listings disappear too.
+    const st = await db.query.stores.findFirst({ where: eq(stores.ownerId, userId) });
+    if (st && st.status === 'APPROVED') {
+      await db.update(stores).set({ status: 'SUSPENDED', verified: false, reviewNote: reason, reviewedAt: new Date(), reviewedById: adminId }).where(eq(stores.id, st.id));
+    }
+    await audit(adminId, 'user_ban', 'user', userId, reason);
+    return { banned: true };
+  }
+
+  async unbanUser(userId: string, adminId: string) {
+    await db.update(users).set({ bannedAt: null, banReason: null }).where(eq(users.id, userId));
+    forgetSession(userId);
+    await audit(adminId, 'user_unban', 'user', userId);
+    return { banned: false };
+  }
+
+  async auditLog() {
+    return db
+      .select({ id: adminAudit.id, action: adminAudit.action, targetType: adminAudit.targetType, targetId: adminAudit.targetId, note: adminAudit.note, createdAt: adminAudit.createdAt, admin: users.email })
+      .from(adminAudit)
+      .leftJoin(users, eq(adminAudit.adminId, users.id))
+      .orderBy(desc(adminAudit.createdAt))
+      .limit(200);
   }
 }

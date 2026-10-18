@@ -22,12 +22,13 @@ async function main() {
   const passwordHash = await bcrypt.hash(password, 10);
   const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
   if (existing) {
-    await db.update(users).set({ role: 'ADMIN', passwordHash }).where(eq(users.id, existing.id));
-    console.log(`Promoted ${email} to ADMIN (password updated). Sign out and back in on the app.`);
+    await db.update(users).set({ role: 'ADMIN', passwordHash, emailVerifiedAt: existing.emailVerifiedAt ?? new Date() }).where(eq(users.id, existing.id));
+    console.log(`Promoted ${email} to ADMIN (password updated).`);
   } else {
-    await db.insert(users).values({ email, passwordHash, fullName, role: 'ADMIN' });
+    await db.insert(users).values({ email, passwordHash, fullName, role: 'ADMIN', emailVerifiedAt: new Date(), termsAcceptedAt: new Date() });
     console.log(`Created admin ${email}.`);
   }
+  console.log('Sign in at https://<your-backend>/admin — the first sign-in sets up your authenticator app.');
 }
 
 main()

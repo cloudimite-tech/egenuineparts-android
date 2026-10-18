@@ -1,12 +1,13 @@
+import { serviceIcon } from '../utils/services';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNoScreenshots } from '../utils/useNoScreenshots';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { MainTabParamList, RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing } from '../theme/theme';
+import { RootStackParamList } from '../navigation/types';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Conversation } from '../types';
 import { Header } from '../components/Header';
@@ -16,10 +17,7 @@ import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
 import { timeAgo } from '../utils/format';
 
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, 'Messages'>,
-  NativeStackScreenProps<RootStackParamList>
->;
+type Props = NativeStackScreenProps<RootStackParamList, 'Messages'>;
 
 type Filter = 'all' | 'buying' | 'selling';
 
@@ -50,7 +48,7 @@ export function MessagesScreen({ navigation }: Props) {
   if (isGuest) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Header title="Messages" large />
+        <Header title="Messages" back />
         <EmptyState
           icon="chatbubbles-outline"
           title="Chat with sellers"
@@ -69,7 +67,7 @@ export function MessagesScreen({ navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Header title="Messages" large>
+      <Header title="Messages" back>
         {isSeller ? (
           <View style={styles.tabs}>
             {(['all', 'buying', 'selling'] as Filter[]).map((f) => (
@@ -110,7 +108,15 @@ export function MessagesScreen({ navigation }: Props) {
                 activeOpacity={0.8}
               >
                 <View>
-                  <ProductImage url={item.product.images?.[0]?.url} style={styles.thumb} iconSize={24} rounded={12} />
+                  {item.product ? (
+                    <ProductImage url={item.product.images?.[0]?.url} style={styles.thumb} iconSize={24} rounded={12} />
+                  ) : item.service?.images?.[0]?.url ? (
+                    <ProductImage url={item.service.images[0].url} style={styles.thumb} iconSize={24} rounded={12} />
+                  ) : (
+                    <View style={[styles.thumb, { borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }]}>
+                      <Ionicons name={serviceIcon(item.service?.type?.icon)} size={24} color={colors.accent} />
+                    </View>
+                  )}
                   {item.viewerIsSeller ? (
                     <View style={styles.roleBadge}>
                       <Ionicons name="storefront" size={10} color={colors.white} />
@@ -127,7 +133,7 @@ export function MessagesScreen({ navigation }: Props) {
                     </Text>
                   </View>
                   <Text style={styles.product} numberOfLines={1}>
-                    {item.product.title}
+                    {item.product?.title ?? (item.service ? `${item.service.type?.name ?? 'Service'} · ${item.service.title}` : '')}
                   </Text>
                   <View style={styles.rowBottom}>
                     <Text style={[styles.preview, unread > 0 && { color: colors.text, fontWeight: '700' }]} numberOfLines={1}>
@@ -149,16 +155,16 @@ export function MessagesScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 8, marginTop: spacing.md },
   tab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: colors.headerElevated },
-  tabActive: { backgroundColor: colors.white },
+  tabActive: { backgroundColor: colors.paper },
   tabText: { color: '#C9C9CF', fontWeight: '700', fontSize: 13 },
-  tabTextActive: { color: colors.black },
+  tabTextActive: { color: colors.ink },
   row: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
     borderRadius: radius.md,
@@ -187,4 +193,4 @@ const styles = StyleSheet.create({
   preview: { flex: 1, color: colors.textMuted, fontSize: 14 },
   unread: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   unreadText: { color: colors.white, fontSize: 12, fontWeight: '800' },
-});
+}));

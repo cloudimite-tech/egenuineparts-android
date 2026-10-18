@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Order } from '../types';
 import { Header } from '../components/Header';
@@ -82,8 +83,8 @@ export function OrdersScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
+const styles = themed(() => StyleSheet.create({
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   number: { fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   date: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
@@ -93,4 +94,4 @@ const styles = StyleSheet.create({
   bottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   muted: { color: colors.textMuted, fontSize: 13 },
   total: { fontWeight: '900', fontSize: 16 },
-});
+}));

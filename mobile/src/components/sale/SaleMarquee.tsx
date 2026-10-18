@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Easing, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radius, shadow, spacing } from '../../theme/theme';
+import { colors, radius, shadow, spacing, themed } from '../../theme/theme';
 import { Highlights, Product } from '../../types';
 import { ProductImage } from '../ProductImage';
 import { Countdown } from '../Countdown';
@@ -16,8 +17,8 @@ const SPEED = 38; // px per second
 const TITLES: Record<Highlights['mode'], { title: string; icon: keyof typeof Ionicons.glyphMap; colors: readonly [string, string, ...string[]] }> = {
   flash: { title: 'Flash Deals', icon: 'flash', colors: ['#E0141C', '#FF6A1F'] },
   deals: { title: 'Hot Deals', icon: 'flame', colors: ['#F24E1E', '#FF9A2E'] },
-  top: { title: 'Top Picks', icon: 'trophy-outline', colors: ['#1C1B54', '#3B3AA0'] },
-  new: { title: 'New Arrivals', icon: 'sparkles', colors: ['#1C1B54', '#3B3AA0'] },
+  top: { title: 'Top Picks', icon: 'trophy-outline', colors: ['#161314', '#3A3536'] },
+  new: { title: 'New Arrivals', icon: 'sparkles', colors: ['#161314', '#3A3536'] },
 };
 
 // A ticker of products that glides right → left forever (two copies of the
@@ -124,8 +125,8 @@ export function SaleMarquee({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { marginHorizontal: spacing.md, marginTop: spacing.md, backgroundColor: colors.white, borderRadius: radius.lg, overflow: 'hidden', ...shadow },
+const styles = themed(() => StyleSheet.create({
+  wrap: { marginHorizontal: spacing.md, marginTop: spacing.md, backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden', ...shadow },
   head: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 10 },
   title: { color: colors.white, fontSize: 17, fontWeight: '900', fontStyle: 'italic', marginRight: 4 },
   viewAll: { flexDirection: 'row', alignItems: 'center', gap: 2, marginLeft: 'auto' },
@@ -142,4 +143,4 @@ const styles = StyleSheet.create({
   bar: { height: 16, borderRadius: 8, backgroundColor: '#FFE4D6', marginTop: 6, overflow: 'hidden', justifyContent: 'center' },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#FFB08A', borderRadius: 8 },
   barText: { fontSize: 10, fontWeight: '800', color: '#9A3412', paddingHorizontal: 8 },
-});
+}));

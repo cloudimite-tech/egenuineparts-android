@@ -85,7 +85,7 @@ export class AssistantService {
     if (!text || has(lower, 'hi', 'hello', 'hey', 'ayubowan', 'good morning', 'good evening') && lower.split(/\s+/).length <= 4) {
       return {
         reply:
-          "Hi! I’m the Genuine Parts.lk assistant. Tell me the part you need — like “brake pads for Axio 2016” — or ask about orders, delivery or selling.",
+          "Hi! I’m the AutoGuide assistant. Tell me the part you need — like “brake pads for Axio 2016” — or ask about orders, delivery or selling.",
         quickReplies: ['Brake pads for Axio 2016', 'Show today’s deals', 'Track my order', 'How do I sell?'],
       };
     }
@@ -97,7 +97,7 @@ export class AssistantService {
     if (has(lower, 'sell', 'seller', 'open a store', 'open store', 'my shop', 'list my', 'become a')) {
       return {
         reply:
-          'Selling on Genuine Parts.lk is free, and every store is verified. Tap Account → Become a seller and add your NIC, Business Registration (BR) certificate, shop location and a selfie at your shop. Once our team approves you (usually within 1–2 working days), list parts with photos, price, stock and the vehicles they fit. Buyers pay cash on delivery and you manage everything from the Seller Centre.',
+          'Selling on AutoGuide is free, and every store is verified. Tap Account → Become a seller and add your NIC, Business Registration (BR) certificate, shop location and a selfie at your shop. Once our team approves you (usually within 1–2 working days), list parts with photos, price, stock and the vehicles they fit. Buyers pay cash on delivery and you manage everything from the Seller Centre.',
         action: guest ? { type: 'sign_in', label: 'Create an account' } : { type: 'open_sell', label: 'Become a seller' },
         quickReplies: ['How does delivery work?', 'How do payments work?'],
       };
@@ -161,7 +161,7 @@ export class AssistantService {
     if (has(lower, 'human', 'agent', 'customer support', 'support team', 'complain', 'complaint', 'talk to someone')) {
       return {
         reply:
-          'I can help with finding parts, orders, delivery and payments. For anything else, email support@genuineparts.lk and our team will reply within a day.',
+          'I can help with finding parts, orders, delivery and payments. For anything else, email support@autoguide.lk and our team will reply within a day.',
         quickReplies: ['Track my order', 'How does delivery work?'],
       };
     }

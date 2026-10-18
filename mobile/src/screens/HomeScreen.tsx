@@ -1,23 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Text, TextInput } from '../components/Themed';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, shadow, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
+import { ServiceType } from '../types';
+import { serviceIcon } from '../utils/services';
 import { Category, Highlights, Product } from '../types';
 import { ProductGridCard } from '../components/ProductGridCard';
 import { SaleHero } from '../components/sale/SaleHero';
@@ -67,6 +59,7 @@ export function HomeScreen({ navigation }: Props) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +71,7 @@ export function HomeScreen({ navigation }: Props) {
   // pull-to-refresh), so a hiccup at startup doesn't leave them empty.
   const loadCategories = useCallback(() => {
     apiClient.get<Category[]>('/categories').then((r) => setCategories(r.data)).catch(() => {});
+    apiClient.get<ServiceType[]>('/service-types').then((r) => setServiceTypes(r.data)).catch(() => {});
   }, []);
 
   useFocusEffect(
@@ -132,7 +126,7 @@ export function HomeScreen({ navigation }: Props) {
       });
       setProducts(data);
     } catch (e) {
-      setError(errorMessage(e, 'Couldn’t reach Genuine Parts.lk. Check your connection.'));
+      setError(errorMessage(e, 'Couldn’t reach AutoGuide. Check your connection.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -204,7 +198,7 @@ export function HomeScreen({ navigation }: Props) {
           onExpired={loadHighlights}
           onPromo={(target) => {
             if (target === 'deals') setOnSaleOnly(true);
-            else if (target === 'categories') navigation.navigate('Main', { screen: 'Categories' });
+            else if (target === 'categories') navigation.navigate('Main', { screen: 'Products' });
             else
               requireAccount(
                 () => startSelling(navigation),
@@ -212,6 +206,30 @@ export function HomeScreen({ navigation }: Props) {
               );
           }}
         />
+      ) : null}
+
+      {!isFiltered && serviceTypes.length ? (
+        <View style={styles.svcBox}>
+          <View style={styles.svcHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.svcTitle}>Garages & services</Text>
+              <Text style={styles.svcSub}>Book a verified garage, service station or electrician</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: 'Services' })} hitSlop={8}>
+              <Text style={styles.svcAll}>See all</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: spacing.md }}>
+            {serviceTypes.map((t) => (
+              <TouchableOpacity key={t.id} style={styles.svcTile} onPress={() => navigation.navigate('Main', { screen: 'Services', params: { type: t.slug } })} activeOpacity={0.85}>
+                <View style={styles.svcIcon}>
+                  <Ionicons name={serviceIcon(t.icon)} size={22} color={colors.white} />
+                </View>
+                <Text style={styles.svcName} numberOfLines={2}>{t.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
       ) : null}
 
       {!isFiltered && highlights && highlights.products.length > 0 ? (
@@ -274,7 +292,7 @@ export function HomeScreen({ navigation }: Props) {
             onPress={() => requireAccount(() => navigation.navigate('Wishlist'), 'Sign in to see your wishlist.')}
             hitSlop={8}
           >
-            <Ionicons name="heart-outline" size={26} color={colors.navy} />
+            <Ionicons name="heart-outline" size={26} color={colors.link} />
           </TouchableOpacity>
         </View>
 
@@ -398,10 +416,10 @@ function ActiveChip({ label, onClear }: { label: string; onClear: () => void }) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   // White header so the navy/red logo reads clearly.
   header: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     paddingTop: HEADER_TOP,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
@@ -423,15 +441,23 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15, color: colors.text },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.md },
   vehicleText: { flex: 1, color: colors.textMuted, fontSize: 14 },
-  vehicleStrong: { color: colors.navy, fontWeight: '800' },
+  vehicleStrong: { color: colors.link, fontWeight: '800' },
   vehicleChange: { color: colors.accent, fontWeight: '800', fontSize: 14 },
+  svcBox: { backgroundColor: colors.surface, marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: radius.md, paddingVertical: spacing.md, ...shadow },
+  svcHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, marginBottom: spacing.sm + 2 },
+  svcTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
+  svcSub: { fontSize: 12.5, color: colors.textMuted, marginTop: 1 },
+  svcAll: { color: colors.accent, fontWeight: '800', fontSize: 13 },
+  svcTile: { width: 92, alignItems: 'center', gap: 6 },
+  svcIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
+  svcName: { fontSize: 11.5, fontWeight: '700', color: colors.text, textAlign: 'center', lineHeight: 14 },
   catRow: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: 14 },
   catItem: { alignItems: 'center', width: 70 },
   catCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -444,7 +470,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginHorizontal: spacing.md,
     marginTop: spacing.sm + 2,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -483,7 +509,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.pill,
@@ -513,4 +539,4 @@ const styles = StyleSheet.create({
     maxWidth: 220,
   },
   activeChipText: { color: colors.white, fontWeight: '700', fontSize: 12, flexShrink: 1 },
-});
+}));

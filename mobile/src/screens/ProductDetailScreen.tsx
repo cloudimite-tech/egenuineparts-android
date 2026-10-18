@@ -1,20 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { ReportSheet, ReportTarget, reportStyles } from '../components/ReportSheet';
 import { shareProduct } from '../utils/share';
-import {
-  ActivityIndicator,
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, shadow, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, shadow, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Product } from '../types';
 import { ProductImage } from '../components/ProductImage';
@@ -39,6 +32,8 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const requireAccount = useRequireAccount();
+  const [report, setReport] = useState<ReportTarget | null>(null);
+  const reportIt = (t: ReportTarget) => requireAccount(() => setReport(t), 'Sign in to report this.');
   const profile = useAuthStore((s) => s.profile);
   const addItem = useCartStore((s) => s.addItem);
   const { ids: savedIds, toggle } = useWishlistStore();
@@ -160,10 +155,10 @@ export function ProductDetailScreen({ route, navigation }: Props) {
           />
           <BackFab onPress={() => navigation.goBack()} />
           <TouchableOpacity style={[styles.fab, { right: spacing.md + 52 }]} onPress={() => shareProduct(product)} accessibilityLabel="Share">
-            <Ionicons name="share-social-outline" size={21} color={colors.text} />
+            <Ionicons name="share-social-outline" size={21} color={colors.ink} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.fab, { right: spacing.md }]} onPress={toggleSave}>
-            <Ionicons name={saved ? 'heart' : 'heart-outline'} size={22} color={saved ? colors.accent : colors.text} />
+            <Ionicons name={saved ? 'heart' : 'heart-outline'} size={22} color={saved ? colors.accent : colors.ink} />
           </TouchableOpacity>
           {images.length > 1 ? (
             <View style={styles.dots}>
@@ -365,6 +360,10 @@ export function ProductDetailScreen({ route, navigation }: Props) {
                     </View>
                   </View>
                   {r.comment ? <Text style={styles.reviewBody}>{r.comment}</Text> : null}
+                  <TouchableOpacity style={reportStyles.link} onPress={() => reportIt({ type: 'REVIEW', id: r.id, label: 'review' })}>
+                    <Ionicons name="flag-outline" size={13} color={colors.textMuted} />
+                    <Text style={reportStyles.linkText}>Report</Text>
+                  </TouchableOpacity>
                 </View>
               ))}
               {reviews.length > 3 && !showAllReviews ? (
@@ -375,7 +374,14 @@ export function ProductDetailScreen({ route, navigation }: Props) {
             </>
           )}
         </View>
+        {!isOwnListing ? (
+          <TouchableOpacity style={[reportStyles.link, { alignSelf: 'center', marginVertical: spacing.md }]} onPress={() => reportIt({ type: 'PRODUCT', id: product.id, label: 'listing' })}>
+            <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
+            <Text style={reportStyles.linkText}>Report this listing</Text>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
+      <ReportSheet target={report} onClose={() => setReport(null)} />
 
       {/* Action bar */}
       <View style={[styles.actionBar, { paddingBottom: spacing.sm + insets.bottom }]}>
@@ -421,7 +427,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
 function BackFab({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity style={[styles.fab, { left: spacing.md }]} onPress={onPress}>
-      <Ionicons name="chevron-back" size={24} color={colors.text} />
+      <Ionicons name="chevron-back" size={24} color={colors.ink} />
     </TouchableOpacity>
   );
 }
@@ -445,7 +451,7 @@ function Spec({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   fab: {
     position: 'absolute',
@@ -461,7 +467,7 @@ const styles = StyleSheet.create({
   dots: { position: 'absolute', bottom: 12, alignSelf: 'center', flexDirection: 'row', gap: 6 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.2)' },
   dotActive: { backgroundColor: colors.accent, width: 18 },
-  block: { backgroundColor: colors.white, padding: spacing.md, marginBottom: spacing.sm },
+  block: { backgroundColor: colors.surface, padding: spacing.md, marginBottom: spacing.sm },
   flashStrip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: spacing.md, paddingVertical: 10 },
   flashTitle: { color: colors.white, fontWeight: '900', fontSize: 15, fontStyle: 'italic' },
   flashSub: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
@@ -480,7 +486,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     padding: spacing.md,
     marginBottom: 1,
   },
@@ -493,7 +499,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -531,7 +537,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm + 2,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -542,7 +548,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.navy,
+    borderColor: colors.link,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -558,4 +564,4 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryText: { fontWeight: '800', fontSize: 15, color: colors.white },
-});
+}));

@@ -1,7 +1,8 @@
 import React from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 
 interface Props {
   visible: boolean;
@@ -42,10 +43,10 @@ export function SheetModal({ visible, onClose, title, right, footer, children, s
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+const styles = themed(() => StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: colors.overlay },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '88%',
@@ -63,4 +64,4 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 21, fontWeight: '800', color: colors.text },
   body: { padding: spacing.lg },
   footer: { padding: spacing.md, paddingBottom: spacing.lg, borderTopWidth: 1, borderTopColor: colors.divider },
-});
+}));

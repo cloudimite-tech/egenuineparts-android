@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { FlatList, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Text } from '../Themed';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radius, spacing } from '../../theme/theme';
+import { colors, radius, spacing, themed } from '../../theme/theme';
 import { Highlights, Product } from '../../types';
 import { ProductImage } from '../ProductImage';
 import { Countdown } from '../Countdown';
@@ -17,8 +18,8 @@ type Slide =
 
 const FLASH: Grad = ['#C8101A', '#F0341F', '#FF7A1F'];
 const ORANGE: Grad = ['#F24E1E', '#FF8A1F', '#FFB23F'];
-const DARK: Grad = ['#1C1B54', '#2E2D7C', '#4846B8'];
-const PURPLE: Grad = ['#2E2D7C', '#7A2363', '#D2262B'];
+const DARK: Grad = ['#161314', '#231F20', '#5A5455'];
+const PURPLE: Grad = ['#231F20', '#7A2363', '#E5120B'];
 
 // Tag each product by why it's in the rail, not by the rail's mode —
 // a flash rail can be topped up with hot deals and best sellers.
@@ -34,7 +35,7 @@ const MODE_META: Record<Highlights['mode'], { overline: string; icon: keyof type
 // Always-on promo slides so the hero is never empty (and adds variety).
 const PROMOS: Slide[] = [
   { key: 'promo-cod', kind: 'promo', colors: PURPLE, icon: 'cash-fast', title: 'Cash on delivery, island-wide', subtitle: 'Order today — pay when your parts arrive.', cta: 'Shop deals', target: 'deals' },
-  { key: 'promo-sell', kind: 'promo', colors: DARK, icon: 'storefront-outline', title: 'Sell your parts on Genuine Parts.lk', subtitle: 'Verified stores reach buyers island-wide.', cta: 'Become a seller', target: 'sell' },
+  { key: 'promo-sell', kind: 'promo', colors: DARK, icon: 'storefront-outline', title: 'Sell your parts on AutoGuide', subtitle: 'Verified stores reach buyers island-wide.', cta: 'Become a seller', target: 'sell' },
 ];
 
 export function SaleHero({
@@ -110,7 +111,7 @@ export function SaleHero({
             ) : (
               <View style={styles.cta}>
                 <Text style={styles.ctaText}>Shop now</Text>
-                <Ionicons name="arrow-forward" size={14} color={colors.black} />
+                <Ionicons name="arrow-forward" size={14} color={colors.ink} />
               </View>
             )}
           </View>
@@ -153,7 +154,7 @@ export function SaleHero({
             </View>
             <View style={styles.cta}>
               <Text style={styles.ctaText}>Grab it</Text>
-              <Ionicons name="arrow-forward" size={14} color={colors.black} />
+              <Ionicons name="arrow-forward" size={14} color={colors.ink} />
             </View>
           </View>
           <Floating distance={7} rotate={2}>
@@ -175,7 +176,7 @@ export function SaleHero({
             <Text style={styles.subtitle}>{item.subtitle}</Text>
             <View style={styles.cta}>
               <Text style={styles.ctaText}>{item.cta}</Text>
-              <Ionicons name="arrow-forward" size={14} color={colors.black} />
+              <Ionicons name="arrow-forward" size={14} color={colors.ink} />
             </View>
           </View>
           <Floating distance={6}>
@@ -213,7 +214,7 @@ export function SaleHero({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   frame: { borderRadius: radius.lg, overflow: 'hidden' },
   slide: { overflow: 'hidden' },
   slideInner: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: spacing.md + 2 },
@@ -235,19 +236,19 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     marginTop: 12,
   },
-  ctaText: { color: colors.black, fontWeight: '900', fontSize: 13 },
+  ctaText: { color: colors.ink, fontWeight: '900', fontSize: 13 },
   stack: { width: 128, height: 130 },
   stackItem: { position: 'absolute' },
-  thumbCard: { backgroundColor: colors.white, borderRadius: 14, padding: 4, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  thumbCard: { backgroundColor: colors.paper, borderRadius: 14, padding: 4, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
   thumbOff: { position: 'absolute', bottom: -6, left: -6, backgroundColor: '#FFE14D', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
-  thumbOffText: { fontSize: 10, fontWeight: '900', color: colors.black },
-  tag: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', backgroundColor: colors.white, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  thumbOffText: { fontSize: 10, fontWeight: '900', color: colors.ink },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', backgroundColor: colors.paper, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   tagText: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 0.6 },
   productTitle: { color: colors.white, fontSize: 17, fontWeight: '900', marginTop: 6, lineHeight: 21 },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4, flexWrap: 'wrap' },
   bigPrice: { color: '#FFE14D', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
   was: { color: 'rgba(255,255,255,0.75)', fontSize: 12, textDecorationLine: 'line-through', fontWeight: '600' },
-  heroImageCard: { backgroundColor: colors.white, borderRadius: 18, padding: 5, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  heroImageCard: { backgroundColor: colors.paper, borderRadius: 18, padding: 5, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   burst: {
     position: 'absolute',
     top: -12,
@@ -262,11 +263,11 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   burstPct: { fontSize: 15, fontWeight: '900', color: colors.accent, lineHeight: 17 },
-  burstOff: { fontSize: 9, fontWeight: '900', color: colors.black },
+  burstOff: { fontSize: 9, fontWeight: '900', color: colors.ink },
   promoTitle: { color: colors.white, fontSize: 20, fontWeight: '900', lineHeight: 24 },
   promoIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#D4D4D8' },
   dotActive: { width: 18, backgroundColor: colors.accent },
-});
+}));
 

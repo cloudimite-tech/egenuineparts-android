@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { SheetModal } from './SheetModal';
 import { TextField } from './TextField';
 import { Button } from './Button';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 
 export interface Filters {
   sort: string;
@@ -111,7 +112,7 @@ export function FilterSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   reset: { color: colors.accent, fontWeight: '700', fontSize: 15 },
   label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: colors.textMuted, marginBottom: spacing.sm },
   radioRow: {
@@ -136,4 +137,4 @@ const styles = StyleSheet.create({
   },
   brandChipOn: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
   brandText: { fontWeight: '600', color: colors.text },
-});
+}));

@@ -4,7 +4,7 @@
 module.exports = ({ config }) => {
   const api = process.env.EXPO_PUBLIC_API_URL;
   const host = api && /^https:\/\//.test(api) ? new URL(api).host : null;
-  const hosts = [host, 'genuineparts.lk', 'www.genuineparts.lk'].filter(Boolean);
+  const hosts = [host, 'autoguide.lk', 'www.autoguide.lk'].filter(Boolean);
   return {
     ...config,
     android: {

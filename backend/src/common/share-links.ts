@@ -4,7 +4,7 @@ import { products, stores } from '../db/schema';
 
 // Hosts whose /p/<productId> and /s/<storeSlug> links may be shared in chat.
 export function shareHosts() {
-  const hosts = new Set(['genuineparts.lk', 'www.genuineparts.lk']);
+  const hosts = new Set(['autoguide.lk', 'www.autoguide.lk']);
   for (const h of [process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_URL, ...(process.env.SHARE_HOSTS ?? '').split(',')]) {
     if (h?.trim()) hosts.add(h.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase());
   }
@@ -16,10 +16,10 @@ function isLocalDevHost(host: string) {
   return !process.env.VERCEL && /^(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(host);
 }
 
-const LINK = /(?:https?:\/\/([a-z0-9.-]+(?::\d+)?)|genuineparts:\/\/)\/?(p|s)\/([A-Za-z0-9-]{2,80})\/?(?=[\s.,!?)]|$)/gi;
+const LINK = /(?:https?:\/\/([a-z0-9.-]+(?::\d+)?)|autoguide:\/\/)\/?(p|s)\/([A-Za-z0-9-]{2,80})\/?(?=[\s.,!?)]|$)/gi;
 
 /**
- * Finds Genuine Parts.lk share links in a message and checks each one points
+ * Finds AutoGuide share links in a message and checks each one points
  * to a real, live product or store. Returns the text with valid links removed
  * (so the contact filter only judges the rest) — invalid look-alikes are left
  * in place and get blocked as ordinary links.

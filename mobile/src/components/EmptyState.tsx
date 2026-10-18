@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '../theme/theme';
+import { colors, spacing, themed } from '../theme/theme';
 import { Button } from './Button';
 
 export function EmptyState({
@@ -38,7 +39,7 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl, flexGrow: 1 },
   iconCircle: {
     width: 76,
@@ -51,4 +52,4 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 19, fontWeight: '800', color: colors.text, textAlign: 'center' },
   message: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 6, lineHeight: 20, maxWidth: 300 },
-});
+}));

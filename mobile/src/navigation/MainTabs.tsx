@@ -5,7 +5,7 @@ import { MainTabParamList } from './types';
 import { colors } from '../theme/theme';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CategoriesScreen } from '../screens/CategoriesScreen';
-import { MessagesScreen } from '../screens/MessagesScreen';
+import { ServicesScreen } from '../screens/services/ServicesScreen';
 import { CartScreen } from '../screens/CartScreen';
 import { AccountScreen } from '../screens/AccountScreen';
 import { selectCartCount, useCartStore } from '../store/cartStore';
@@ -15,8 +15,8 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const ICONS: Record<keyof MainTabParamList, [keyof typeof Ionicons.glyphMap, keyof typeof Ionicons.glyphMap]> = {
   Home: ['home', 'home-outline'],
-  Categories: ['grid', 'grid-outline'],
-  Messages: ['chatbubbles', 'chatbubbles-outline'],
+  Products: ['grid', 'grid-outline'],
+  Services: ['construct', 'construct-outline'],
   Cart: ['cart', 'cart-outline'],
   Account: ['person', 'person-outline'],
 };
@@ -29,9 +29,9 @@ export function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: '#8E8E96',
+        tabBarInactiveTintColor: colors.textFaint,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarStyle: { borderTopColor: colors.border, backgroundColor: colors.white },
+        tabBarStyle: { borderTopColor: colors.border, backgroundColor: colors.surface },
         tabBarBadgeStyle: { backgroundColor: colors.accent, fontSize: 10, fontWeight: '800' },
         tabBarIcon: ({ focused, color, size }) => {
           const [on, off] = ICONS[route.name as keyof MainTabParamList];
@@ -40,10 +40,11 @@ export function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} />
-      <Tab.Screen name="Messages" component={MessagesScreen} options={{ tabBarBadge: unread > 0 ? unread : undefined }} />
+      <Tab.Screen name="Products" component={CategoriesScreen} />
+      <Tab.Screen name="Services" component={ServicesScreen} />
       <Tab.Screen name="Cart" component={CartScreen} options={{ tabBarBadge: cartCount > 0 ? cartCount : undefined }} />
-      <Tab.Screen name="Account" component={AccountScreen} />
+      {/* Messages live under Account — the unread count shows on its tab. */}
+      <Tab.Screen name="Account" component={AccountScreen} options={{ tabBarBadge: unread > 0 ? unread : undefined }} />
     </Tab.Navigator>
   );
 }

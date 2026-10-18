@@ -1,4 +1,4 @@
-# e-Genuine Parts
+# AutoGuide
 
 A mobile marketplace for vehicle spare parts in Sri Lanka — like Daraz/AliExpress,
 but only auto parts. Verified stores sell, buyers browse by vehicle fitment, and

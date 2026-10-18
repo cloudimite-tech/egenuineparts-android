@@ -15,8 +15,8 @@ const MIN_EDGE = 200;
 const MAX_INPUT_PIXELS = 40_000_000; // ~40 MP; blocks "decompression bomb" images
 
 export async function processProductImage(input: Buffer): Promise<Buffer> {
-  let img: sharp.Sharp;
-  let meta: sharp.Metadata;
+  let img: ReturnType<typeof sharp>;
+  let meta: Awaited<ReturnType<ReturnType<typeof sharp>['metadata']>>;
   try {
     img = sharp(input, { failOn: 'error', limitInputPixels: MAX_INPUT_PIXELS });
     meta = await img.metadata();

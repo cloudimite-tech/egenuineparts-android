@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 // Address ↔ map lookups via OpenStreetMap Nominatim (free, no API key).
 // Its usage policy asks for an identifying User-Agent, max ~1 request per
 // second and caching — so the app always goes through this proxy.
-const UA = 'GenuinePartsLK/1.0 (support@genuineparts.lk)';
+const UA = 'AutoGuideLK/1.0 (support@autoguide.lk)';
 const NOMINATIM = process.env.NOMINATIM_URL || 'https://nominatim.openstreetmap.org';
 
 export interface Place {

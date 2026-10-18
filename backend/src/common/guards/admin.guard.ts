@@ -1,18 +1,14 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { db } from '../../db/client';
-import { users } from '../../db/schema';
 
-// Admin-only endpoints. Checks the token's role AND the database, so a
-// demoted admin loses access immediately even with an old token.
-// Must run after JwtAuthGuard so req.user is populated.
+// Admin-panel endpoints. Requires a session issued by the web admin login
+// (password + authenticator code), not a mobile-app token. The JWT strategy
+// has already checked the account is active and refreshed its role from the
+// database, so a demoted or banned admin loses access straight away.
 @Injectable()
 export class AdminGuard implements CanActivate {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
-    if (req.user?.role !== 'ADMIN') throw new ForbiddenException('Admins only.');
-    const u = await db.query.users.findFirst({ where: eq(users.id, req.user.sub), columns: { role: true } });
-    if (u?.role !== 'ADMIN') throw new ForbiddenException('Admins only.');
+    if (req.user?.aud !== 'admin' || req.user?.role !== 'ADMIN') throw new ForbiddenException('Admins only.');
     return true;
   }
 }

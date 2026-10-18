@@ -55,6 +55,20 @@ export const users = pgTable('users', {
   addressLine2: varchar('address_line2', { length: 255 }),
   city: varchar('city', { length: 100 }),
   district: varchar('district', { length: 100 }),
+  // ---- account security ----
+  emailVerifiedAt: timestamp('email_verified_at'),
+  termsAcceptedAt: timestamp('terms_accepted_at'),
+  // Bumped to sign the user out everywhere (password reset, ban, "sign out all").
+  tokenVersion: integer('token_version').notNull().default(0),
+  bannedAt: timestamp('banned_at'),
+  banReason: text('ban_reason'),
+  deletedAt: timestamp('deleted_at'),
+  // Admin two-step login (authenticator app, RFC 6238 TOTP)
+  totpSecret: varchar('totp_secret', { length: 64 }),
+  totpEnabledAt: timestamp('totp_enabled_at'),
+  // Pending changes awaiting confirmation (new email / new authenticator).
+  pendingEmail: varchar('pending_email', { length: 255 }),
+  totpPendingSecret: varchar('totp_pending_secret', { length: 64 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -219,7 +233,9 @@ export const conversations = pgTable(
   'conversations',
   {
     id: id(),
-    productId: text('product_id').notNull().references(() => products.id),
+    // A chat is about either a product or a service listing.
+    productId: text('product_id').references(() => products.id),
+    serviceId: text('service_id').references((): any => services.id),
     buyerId: text('buyer_id').notNull().references(() => users.id),
     storeId: text('store_id').notNull().references(() => stores.id),
     buyerLastReadAt: timestamp('buyer_last_read_at'),
@@ -232,6 +248,7 @@ export const conversations = pgTable(
       t.buyerId,
       t.storeId,
     ),
+    serviceThreadUnique: uniqueIndex('conversation_service_thread_unique').on(t.serviceId, t.buyerId, t.storeId),
   }),
 );
 
@@ -272,7 +289,137 @@ export const wishlistItems = pgTable(
   }),
 );
 
+// One-time email codes (verify email, reset password). Only a hash is stored.
+export const emailCodePurposeEnum = pgEnum('email_code_purpose', ['VERIFY_EMAIL', 'RESET_PASSWORD', 'CHANGE_EMAIL']);
+export const emailCodes = pgTable('email_codes', {
+  id: id(),
+  userId: text('user_id').notNull().references(() => users.id),
+  purpose: emailCodePurposeEnum('purpose').notNull(),
+  codeHash: varchar('code_hash', { length: 128 }).notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  expiresAt: timestamp('expires_at').notNull(),
+  consumedAt: timestamp('consumed_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Fixed-window counters for rate limiting (shared by every server instance).
+export const rateLimits = pgTable('rate_limits', {
+  key: varchar('key', { length: 200 }).primaryKey(),
+  count: integer('count').notNull().default(0),
+  windowStart: timestamp('window_start').notNull().defaultNow(),
+});
+
+// Users reporting listings, stores, messages, reviews or other users.
+export const reportTargetEnum = pgEnum('report_target', ['PRODUCT', 'STORE', 'MESSAGE', 'REVIEW', 'USER', 'CONVERSATION', 'SERVICE']);
+export const reportStatusEnum = pgEnum('report_status', ['OPEN', 'RESOLVED', 'DISMISSED']);
+export const reports = pgTable('reports', {
+  id: id(),
+  reporterId: text('reporter_id').notNull().references(() => users.id),
+  targetType: reportTargetEnum('target_type').notNull(),
+  targetId: text('target_id').notNull(),
+  // The user responsible for the reported content (for moderation actions).
+  targetUserId: text('target_user_id'),
+  reason: varchar('reason', { length: 40 }).notNull(),
+  details: text('details'),
+  status: reportStatusEnum('status').notNull().default('OPEN'),
+  resolutionNote: text('resolution_note'),
+  resolvedById: text('resolved_by_id'),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const userBlocks = pgTable(
+  'user_blocks',
+  {
+    blockerId: text('blocker_id').notNull().references(() => users.id),
+    blockedId: text('blocked_id').notNull().references(() => users.id),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.blockerId, t.blockedId] }) }),
+);
+
+// Who looked at or changed what in the admin panel.
+export const adminAudit = pgTable('admin_audit', {
+  id: id(),
+  adminId: text('admin_id').notNull(),
+  action: varchar('action', { length: 60 }).notNull(),
+  targetType: varchar('target_type', { length: 30 }),
+  targetId: text('target_id'),
+  note: text('note'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 // ---- relations (for query-builder joins) ----
+// ---------------------------------------------------------------------------
+// Services (garages, service stations, auto electrical, …)
+// ---------------------------------------------------------------------------
+
+// The list sellers pick from. Admins manage it; sellers can request new ones.
+export const serviceTypes = pgTable('service_types', {
+  id: id(),
+  name: varchar('name', { length: 100 }).notNull(),
+  slug: varchar('slug', { length: 120 }).notNull().unique(),
+  icon: varchar('icon', { length: 50 }),
+  description: varchar('description', { length: 255 }),
+  sortOrder: integer('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const serviceTypeRequestStatusEnum = pgEnum('service_type_request_status', ['PENDING', 'APPROVED', 'DECLINED']);
+export const serviceTypeRequests = pgTable('service_type_requests', {
+  id: id(),
+  storeId: text('store_id').notNull().references(() => stores.id),
+  requestedById: text('requested_by_id').notNull().references(() => users.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  note: text('note'),
+  status: serviceTypeRequestStatusEnum('status').notNull().default('PENDING'),
+  serviceTypeId: text('service_type_id').references(() => serviceTypes.id),
+  reviewNote: text('review_note'),
+  reviewedById: text('reviewed_by_id'),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const services = pgTable('services', {
+  id: id(),
+  storeId: text('store_id').notNull().references(() => stores.id),
+  typeId: text('type_id').notNull().references(() => serviceTypes.id),
+  title: varchar('title', { length: 150 }).notNull(),
+  description: text('description'),
+  // "From Rs. X" (optionally "to Rs. Y"); null = price on request.
+  priceFrom: numeric('price_from', { precision: 12, scale: 2 }),
+  priceTo: numeric('price_to', { precision: 12, scale: 2 }),
+  durationMinutes: integer('duration_minutes'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const serviceImages = pgTable('service_images', {
+  id: id(),
+  serviceId: text('service_id').notNull().references(() => services.id),
+  url: text('url').notNull(),
+  position: integer('position').notNull().default(0),
+});
+
+// A buyer asks for a time; the seller accepts or declines.
+export const appointmentStatusEnum = pgEnum('appointment_status', ['REQUESTED', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'COMPLETED']);
+export const appointments = pgTable('appointments', {
+  id: id(),
+  serviceId: text('service_id').notNull().references(() => services.id),
+  storeId: text('store_id').notNull().references(() => stores.id),
+  buyerId: text('buyer_id').notNull().references(() => users.id),
+  conversationId: text('conversation_id').references(() => conversations.id),
+  scheduledAt: timestamp('scheduled_at').notNull(),
+  vehicle: varchar('vehicle', { length: 120 }),
+  note: text('note'),
+  status: appointmentStatusEnum('status').notNull().default('REQUESTED'),
+  sellerNote: text('seller_note'),
+  respondedAt: timestamp('responded_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ one, many }) => ({
   store: one(stores, { fields: [users.id], references: [stores.ownerId] }),
   vehicles: many(vehicles),
@@ -283,6 +430,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 export const storesRelations = relations(stores, ({ one, many }) => ({
   owner: one(users, { fields: [stores.ownerId], references: [users.id] }),
   products: many(products),
+  services: many(services),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -295,6 +443,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
 
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
   product: one(products, { fields: [conversations.productId], references: [products.id] }),
+  service: one(services, { fields: [conversations.serviceId], references: [services.id] }),
   buyer: one(users, { fields: [conversations.buyerId], references: [users.id] }),
   store: one(stores, { fields: [conversations.storeId], references: [stores.id] }),
   messages: many(messages),
@@ -357,4 +506,30 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
 export const wishlistItemsRelations = relations(wishlistItems, ({ one }) => ({
   user: one(users, { fields: [wishlistItems.userId], references: [users.id] }),
   product: one(products, { fields: [wishlistItems.productId], references: [products.id] }),
+}));
+
+export const serviceTypesRelations = relations(serviceTypes, ({ many }) => ({
+  services: many(services),
+}));
+
+export const servicesRelations = relations(services, ({ one, many }) => ({
+  store: one(stores, { fields: [services.storeId], references: [stores.id] }),
+  type: one(serviceTypes, { fields: [services.typeId], references: [serviceTypes.id] }),
+  images: many(serviceImages),
+}));
+
+export const serviceImagesRelations = relations(serviceImages, ({ one }) => ({
+  service: one(services, { fields: [serviceImages.serviceId], references: [services.id] }),
+}));
+
+export const serviceTypeRequestsRelations = relations(serviceTypeRequests, ({ one }) => ({
+  store: one(stores, { fields: [serviceTypeRequests.storeId], references: [stores.id] }),
+  requestedBy: one(users, { fields: [serviceTypeRequests.requestedById], references: [users.id] }),
+  serviceType: one(serviceTypes, { fields: [serviceTypeRequests.serviceTypeId], references: [serviceTypes.id] }),
+}));
+
+export const appointmentsRelations = relations(appointments, ({ one }) => ({
+  service: one(services, { fields: [appointments.serviceId], references: [services.id] }),
+  store: one(stores, { fields: [appointments.storeId], references: [stores.id] }),
+  buyer: one(users, { fields: [appointments.buyerId], references: [users.id] }),
 }));

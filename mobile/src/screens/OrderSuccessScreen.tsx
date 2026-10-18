@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, spacing } from '../theme/theme';
+import { colors, spacing, themed } from '../theme/theme';
 import { Button } from '../components/Button';
 import { orderNumber } from '../utils/format';
 
@@ -41,8 +42,8 @@ function Step({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: stri
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+const styles = themed(() => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   circle: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '900', marginTop: spacing.lg },
   number: { color: colors.textMuted, fontWeight: '800', marginTop: 4, letterSpacing: 1 },
@@ -50,4 +51,4 @@ const styles = StyleSheet.create({
   steps: { alignSelf: 'stretch', backgroundColor: colors.bg, borderRadius: 14, padding: spacing.md, gap: 14, marginVertical: spacing.lg },
   step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepText: { fontWeight: '600', flex: 1 },
-});
+}));

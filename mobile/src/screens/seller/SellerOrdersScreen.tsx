@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { useNoScreenshots } from '../../utils/useNoScreenshots';
-import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { colors, radius, spacing } from '../../theme/theme';
+import { colors, radius, spacing, themed } from '../../theme/theme';
 import { apiClient } from '../../api/client';
 import { FulfillmentStatus, SellerOrder } from '../../types';
 import { Header } from '../../components/Header';
@@ -168,13 +169,13 @@ export function SellerOrdersScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 6, marginTop: spacing.md },
   tab: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: colors.headerElevated },
-  tabOn: { backgroundColor: colors.white },
+  tabOn: { backgroundColor: colors.paper },
   tabText: { color: '#C9C9CF', fontWeight: '700', fontSize: 12 },
-  tabTextOn: { color: colors.black },
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
+  tabTextOn: { color: colors.ink },
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm },
   number: { fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   muted: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
@@ -186,4 +187,4 @@ const styles = StyleSheet.create({
   totals: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm + 4 },
   total: { fontWeight: '900', fontSize: 17 },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-});
+}));

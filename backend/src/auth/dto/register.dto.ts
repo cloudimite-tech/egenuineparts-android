@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { Equals, IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { SRI_LANKA_DISTRICTS } from '../../common/seller-access';
 
 export class RegisterDto {
@@ -28,4 +28,7 @@ export class RegisterDto {
   @IsOptional() @IsString() @MaxLength(255) addressLine2?: string;
   @IsString() @MinLength(2) @MaxLength(100) city: string;
   @IsIn(SRI_LANKA_DISTRICTS, { message: 'Choose a valid district.' }) district: string;
+
+  // Google Play requires users to accept the Terms of Use before using chat, listings and reviews.
+  @IsBoolean() @Equals(true, { message: 'Please accept the Terms of Use and Privacy Policy.' }) acceptTerms: boolean;
 }

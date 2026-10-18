@@ -1,22 +1,16 @@
+import { serviceIcon } from '../utils/services';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { findShareLinks } from '../utils/share';
+import { ReportSheet, ReportTarget } from '../components/ReportSheet';
+import { toast } from '../store/toastStore';
 import { useNoScreenshots } from '../utils/useNoScreenshots';
-import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { connectChatSocket } from '../api/socket';
 import { useAuthStore } from '../store/authStore';
@@ -38,6 +32,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user, token } = useAuthStore();
   const [thread, setThread] = useState<Conversation | null>(null);
+  const [report, setReport] = useState<ReportTarget | null>(null);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [draft, setDraft] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
@@ -130,6 +125,40 @@ export function ChatConversationScreen({ route, navigation }: Props) {
 
   const quick = thread?.viewerIsSeller ? QUICK_SELLER : QUICK_BUYER;
   const product = thread?.product;
+  const service = thread?.service;
+
+  const setBlocked = async (block: boolean) => {
+    try {
+      const { data } = block
+        ? await apiClient.post<Conversation>(`/chat/conversations/${conversationId}/block`)
+        : await apiClient.delete<Conversation>(`/chat/conversations/${conversationId}/block`);
+      setThread(data);
+      toast.success(block ? `${thread?.otherPartyName ?? 'User'} blocked` : 'Unblocked');
+      if (block) navigation.goBack();
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Something went wrong.');
+    }
+  };
+
+  const openMenu = () => {
+    if (!thread) return;
+    const name = thread.otherPartyName ?? 'this user';
+    Alert.alert(name, undefined, [
+      { text: 'Report conversation', onPress: () => setReport({ type: 'CONVERSATION', id: conversationId, label: 'conversation' }) },
+      thread.iBlocked
+        ? { text: `Unblock ${name}`, onPress: () => setBlocked(false) }
+        : {
+            text: `Block ${name}`,
+            style: 'destructive' as const,
+            onPress: () =>
+              Alert.alert(`Block ${name}?`, 'They won’t be able to message you, and this chat will be hidden. You can unblock them from Account → Blocked users.', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Block', style: 'destructive', onPress: () => setBlocked(true) },
+              ]),
+          },
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -156,6 +185,11 @@ export function ChatConversationScreen({ route, navigation }: Props) {
             <Ionicons name="storefront-outline" size={22} color={colors.white} />
           </TouchableOpacity>
         ) : null}
+        {thread ? (
+          <TouchableOpacity onPress={openMenu} hitSlop={8} style={{ marginLeft: spacing.sm }} accessibilityLabel="More options">
+            <Ionicons name="ellipsis-vertical" size={22} color={colors.white} />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {product ? (
@@ -174,6 +208,35 @@ export function ChatConversationScreen({ route, navigation }: Props) {
           <Text style={styles.productPrice}>{formatPrice(product.price, product.currency)}</Text>
           <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
         </TouchableOpacity>
+      ) : service ? (
+        <View style={styles.productCard}>
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }} activeOpacity={0.85} onPress={() => navigation.navigate('ServiceDetail', { serviceId: service.id })}>
+            {service.images?.[0]?.url ? (
+              <ProductImage url={service.images[0].url} style={{ width: 46, height: 46 }} iconSize={20} />
+            ) : (
+              <View style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={serviceIcon(service.type?.icon)} size={22} color={colors.accent} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.productLabel}>{(service.type?.name ?? 'SERVICE').toUpperCase()}</Text>
+              <Text style={styles.productTitle} numberOfLines={1}>
+                {service.title}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          {thread?.viewerIsSeller ? (
+            <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate('Appointments', { as: 'seller' })}>
+              <Ionicons name="calendar-outline" size={15} color={colors.white} />
+              <Text style={styles.bookText}>Requests</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate('BookAppointment', { serviceId: service.id })}>
+              <Ionicons name="calendar-outline" size={15} color={colors.white} />
+              <Text style={styles.bookText}>Book</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       ) : null}
 
       {messages === null ? (
@@ -189,7 +252,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
             <View style={styles.safety}>
               <Ionicons name="shield-checkmark-outline" size={18} color={colors.info} />
               <Text style={styles.safetyText}>
-                Keep it on Genuine Parts.lk. Phone numbers, emails, social media, outside links and requests to deal outside the app are blocked, and screenshots are disabled. You can share Genuine Parts.lk product links.
+                Keep it on AutoGuide. Phone numbers, emails, social media, outside links and requests to deal outside the app are blocked, and screenshots are disabled. You can share AutoGuide product links.
               </Text>
             </View>
           }
@@ -202,7 +265,19 @@ export function ChatConversationScreen({ route, navigation }: Props) {
             const blocked = !!m.blockedReason;
             return (
               <View style={[styles.bubbleRow, mine && { justifyContent: 'flex-end' }]}>
-                <View style={{ maxWidth: '80%', alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                <Pressable
+                  style={{ maxWidth: '80%', alignItems: mine ? 'flex-end' : 'flex-start' }}
+                  delayLongPress={350}
+                  onLongPress={
+                    mine || blocked || m.pending
+                      ? undefined
+                      : () =>
+                          Alert.alert('Message', undefined, [
+                            { text: 'Report message', onPress: () => setReport({ type: 'MESSAGE', id: m.id, label: 'message' }) },
+                            { text: 'Cancel', style: 'cancel' },
+                          ])
+                  }
+                >
                   <View
                     style={[
                       styles.bubble,
@@ -225,9 +300,9 @@ export function ChatConversationScreen({ route, navigation }: Props) {
                                 : navigation.push('StoreProfile', { storeIdOrSlug: l.key })
                             }
                           >
-                            <Ionicons name={l.kind === 'product' ? 'pricetag-outline' : 'storefront-outline'} size={14} color={mine ? colors.white : colors.navy} />
+                            <Ionicons name={l.kind === 'product' ? 'pricetag-outline' : 'storefront-outline'} size={14} color={mine ? colors.white : colors.link} />
                             <Text style={[styles.linkChipText, mine && { color: colors.white }]}>{l.kind === 'product' ? 'View product' : 'Visit store'}</Text>
-                            <Ionicons name="chevron-forward" size={14} color={mine ? colors.white : colors.navy} />
+                            <Ionicons name="chevron-forward" size={14} color={mine ? colors.white : colors.link} />
                           </TouchableOpacity>
                         ))
                       : null}
@@ -247,7 +322,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
                       </>
                     )}
                   </View>
-                </View>
+                </Pressable>
               </View>
             );
           }}
@@ -274,6 +349,18 @@ export function ChatConversationScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
+      {thread && thread.canReply === false ? (
+        <View style={[styles.blockedBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+          <Text style={styles.blockedBarText}>
+            {thread.iBlocked ? 'You blocked this user. Unblock them to reply.' : 'You can’t reply in this conversation.'}
+          </Text>
+          {thread.iBlocked ? (
+            <TouchableOpacity onPress={() => setBlocked(false)}>
+              <Text style={styles.blockedBarLink}>Unblock</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : (
       <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
         <TextInput
           style={styles.input}
@@ -288,14 +375,19 @@ export function ChatConversationScreen({ route, navigation }: Props) {
           <Ionicons name="send" size={18} color={colors.white} />
         </TouchableOpacity>
       </View>
+      )}
+      <ReportSheet target={report} onClose={() => setReport(null)} />
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
+  blockedBar: { backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.divider, padding: spacing.md, alignItems: 'center', gap: 6 },
+  blockedBarText: { color: colors.textMuted, textAlign: 'center' },
+  blockedBarLink: { color: colors.accent, fontWeight: '800' },
   linkChip: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.navySoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   linkChipMine: { backgroundColor: 'rgba(255,255,255,0.18)' },
-  linkChipText: { fontWeight: '800', fontSize: 12, color: colors.navy },
+  linkChipText: { fontWeight: '800', fontSize: 12, color: colors.link },
   header: {
     backgroundColor: colors.headerBg,
     paddingTop: HEADER_TOP,
@@ -312,12 +404,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  bookText: { color: colors.white, fontWeight: '800', fontSize: 12.5 },
   productLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8, color: colors.accent },
   productTitle: { fontWeight: '700', fontSize: 14, marginTop: 1 },
   productPrice: { fontWeight: '900', fontSize: 14 },
@@ -329,13 +423,13 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: spacing.md,
   },
-  safetyText: { flex: 1, color: '#1E3A8A', fontSize: 12, lineHeight: 17 },
+  safetyText: { flex: 1, color: colors.info, fontSize: 12, lineHeight: 17 },
   day: { alignSelf: 'center', color: colors.textMuted, fontSize: 12, fontWeight: '700', marginVertical: spacing.sm },
   bubbleRow: { flexDirection: 'row', marginBottom: 10 },
   bubble: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
   mine: { backgroundColor: colors.accent, borderBottomRightRadius: 5 },
-  theirs: { backgroundColor: colors.white, borderBottomLeftRadius: 5 },
-  blocked: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.accent, borderStyle: 'dashed' },
+  theirs: { backgroundColor: colors.surface, borderBottomLeftRadius: 5 },
+  blocked: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accent, borderStyle: 'dashed' },
   blockedText: { color: colors.textMuted, textDecorationLine: 'line-through' },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, paddingHorizontal: 4 },
@@ -352,7 +446,7 @@ const styles = StyleSheet.create({
   },
   noticeText: { flex: 1, color: colors.warning, fontSize: 12, fontWeight: '600', lineHeight: 17 },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
-  quick: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 },
+  quick: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 },
   quickText: { fontSize: 13, fontWeight: '600', color: colors.text },
   inputBar: {
     flexDirection: 'row',
@@ -360,7 +454,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: spacing.sm + 4,
     paddingTop: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -376,4 +470,4 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   send: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-});
+}));

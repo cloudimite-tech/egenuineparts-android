@@ -1,10 +1,14 @@
+import { ServiceCard } from '../components/ServiceCard';
+import { ServiceListing } from '../types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ReportSheet, ReportTarget, reportStyles } from '../components/ReportSheet';
 import { shareStore } from '../utils/share';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Text, TextInput } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Store } from '../types';
 import { ProductGridCard } from '../components/ProductGridCard';
@@ -22,13 +26,21 @@ export function StoreProfileScreen({ route, navigation }: Props) {
   const cardWidth = (width - spacing.md * 2 - 12) / 2;
   const { ids: savedIds, toggle } = useWishlistStore();
   const requireAccount = useRequireAccount();
+  const [report, setReport] = useState<ReportTarget | null>(null);
   const [store, setStore] = useState<Store | null>(null);
   const [failed, setFailed] = useState(false);
   const [search, setSearch] = useState('');
+  const [services, setServices] = useState<ServiceListing[]>([]);
 
   const load = useCallback(() => {
     setFailed(false);
-    apiClient.get<Store>(`/stores/${storeIdOrSlug}`).then((r) => setStore(r.data)).catch(() => setFailed(true));
+    apiClient
+      .get<Store>(`/stores/${storeIdOrSlug}`)
+      .then((r) => {
+        setStore(r.data);
+        apiClient.get<ServiceListing[]>('/services', { params: { store: r.data.slug } }).then((x) => setServices(x.data)).catch(() => {});
+      })
+      .catch(() => setFailed(true));
   }, [storeIdOrSlug]);
   useEffect(load, [load]);
 
@@ -80,11 +92,28 @@ export function StoreProfileScreen({ route, navigation }: Props) {
           {store.shipsFrom ? <Policy icon="location-outline" text={`Ships from ${store.shipsFrom}`} /> : null}
           {store.returnsPolicy ? <Policy icon="return-down-back-outline" text={`Returns: ${store.returnsPolicy}`} /> : null}
           <Policy icon="chatbubbles-outline" text="Chat with this store from any of its listings" />
+          <TouchableOpacity style={reportStyles.link} onPress={() => requireAccount(() => setReport({ type: 'STORE', id: store.id, label: 'store' }), 'Sign in to report this store.')}>
+            <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+            <Text style={reportStyles.linkText}>Report this store</Text>
+          </TouchableOpacity>
         </View>
+        {services.length ? (
+          <View style={{ alignSelf: 'stretch', marginTop: spacing.md }}>
+            <Text style={styles.svcHead}>SERVICES · {services.length}</Text>
+            {services.slice(0, 3).map((sv) => (
+              <ServiceCard key={sv.id} service={sv} onPress={() => navigation.push('ServiceDetail', { serviceId: sv.id })} />
+            ))}
+            {services.length > 3 ? (
+              <TouchableOpacity onPress={() => navigation.navigate('ServiceList', { store: store.slug, storeName: store.name })} style={{ alignSelf: 'center', paddingVertical: 6 }}>
+                <Text style={{ color: colors.accent, fontWeight: '800' }}>See all {services.length} services</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
         <View style={styles.search}>
           <Ionicons name="search" size={18} color={colors.textMuted} />
           <TextInput
-            style={{ flex: 1, fontSize: 15 }}
+            style={{ flex: 1, fontSize: 15, color: colors.text }}
             placeholder={`Search ${store.stats?.productCount ?? ''} parts in this store`}
             placeholderTextColor={colors.textFaint}
             value={search}
@@ -96,6 +125,7 @@ export function StoreProfileScreen({ route, navigation }: Props) {
   );
 
   return (
+    <>
     <FlatList
       style={{ backgroundColor: colors.bg }}
       data={products}
@@ -115,6 +145,8 @@ export function StoreProfileScreen({ route, navigation }: Props) {
         />
       )}
     />
+    <ReportSheet target={report} onClose={() => setReport(null)} />
+    </>
   );
 }
 
@@ -136,10 +168,11 @@ function Policy({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: st
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
+  svcHead: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: colors.textMuted, marginBottom: spacing.sm },
   cover: { height: HEADER_TOP + 70, backgroundColor: colors.headerBg, borderBottomWidth: 3, borderBottomColor: colors.accent },
   back: { position: 'absolute', top: HEADER_TOP, left: spacing.md - 6 },
-  profile: { backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingBottom: spacing.md, marginBottom: spacing.md },
+  profile: { backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingBottom: spacing.md, marginBottom: spacing.md },
   avatar: {
     width: 84,
     height: 84,
@@ -169,4 +202,4 @@ const styles = StyleSheet.create({
     height: 46,
     marginTop: spacing.md,
   },
-});
+}));

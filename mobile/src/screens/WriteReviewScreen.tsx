@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Header } from '../components/Header';
 import { ProductImage } from '../components/ProductImage';
@@ -72,12 +73,12 @@ export function WriteReviewScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
+const styles = themed(() => StyleSheet.create({
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md },
   product: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
   productTitle: { flex: 1, fontWeight: '700', fontSize: 15 },
   q: { fontSize: 17, fontWeight: '800', marginTop: spacing.lg, marginBottom: spacing.md },
   label: { color: colors.star, fontWeight: '800', marginTop: 8, marginBottom: spacing.md, minHeight: 20 },
   error: { color: colors.accent, marginBottom: spacing.sm, fontWeight: '600' },
   note: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: spacing.md },
-});
+}));

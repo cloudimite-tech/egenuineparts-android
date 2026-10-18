@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Header } from '../components/Header';
 import { TextField } from '../components/TextField';
@@ -257,8 +258,8 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
+const styles = themed(() => StyleSheet.create({
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.md },
   cardTitle: { fontSize: 17, fontWeight: '800' },
   fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm + 2,
     borderTopWidth: 1,
@@ -309,4 +310,4 @@ const styles = StyleSheet.create({
   },
   districtRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.divider },
   districtText: { fontSize: 16 },
-});
+}));

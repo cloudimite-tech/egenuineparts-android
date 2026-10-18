@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 
 interface Props extends TextInputProps {
   label?: string;
@@ -59,7 +60,7 @@ export function TextField({ label, hint, error, icon, prefix, optional, secureTe
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   label: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 6 },
   optional: { fontWeight: '400', color: colors.textFaint },
   box: {
@@ -70,14 +71,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: 14,
     minHeight: 50,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   boxMultiline: { alignItems: 'flex-start', paddingVertical: 10 },
-  focused: { borderColor: colors.navy },
+  focused: { borderColor: colors.link },
   errorBox: { borderColor: colors.accent },
   prefix: { fontWeight: '700', color: colors.textMuted, marginRight: 8 },
   input: { flex: 1, fontSize: 15, color: colors.text, paddingVertical: 10 },
   inputMultiline: { minHeight: 96, textAlignVertical: 'top', paddingVertical: 0 },
   error: { color: colors.accent, fontSize: 12, marginTop: 6 },
   hint: { color: colors.textMuted, fontSize: 12, marginTop: 6 },
-});
+}));

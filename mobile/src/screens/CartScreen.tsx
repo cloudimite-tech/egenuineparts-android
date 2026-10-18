@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { Header } from '../components/Header';
 import { EmptyState } from '../components/EmptyState';
 import { ProductImage } from '../components/ProductImage';
@@ -213,9 +214,9 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   headerCount: { color: '#A1A1AA', fontWeight: '600' },
-  group: { backgroundColor: colors.white, borderRadius: radius.md, marginBottom: spacing.sm + 4, overflow: 'hidden' },
+  group: { backgroundColor: colors.surface, borderRadius: radius.md, marginBottom: spacing.sm + 4, overflow: 'hidden' },
   groupHead: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   itemBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   itemPrice: { fontWeight: '900', fontSize: 15 },
   trash: { position: 'absolute', top: spacing.md, right: spacing.md },
-  summary: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
+  summary: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
   rowLabel: { color: colors.textMuted, fontSize: 14 },
   rowValue: { fontWeight: '600', fontSize: 14 },
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
     borderTopWidth: 1,
@@ -261,4 +262,4 @@ const styles = StyleSheet.create({
   totalValue: { fontWeight: '900', fontSize: 20 },
   checkoutBtn: { backgroundColor: colors.accent, borderRadius: radius.md, paddingHorizontal: 34, height: 50, justifyContent: 'center' },
   checkoutText: { color: colors.white, fontWeight: '800', fontSize: 16 },
-});
+}));

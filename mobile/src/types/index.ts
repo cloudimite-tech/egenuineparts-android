@@ -33,6 +33,8 @@ export interface Profile {
   city?: string | null;
   district?: string | null;
   sellerStatus: SellerStatus | null;
+  emailVerified?: boolean;
+  termsAccepted?: boolean;
   createdAt: string;
   store: { id: string; name: string; slug: string; verified: boolean; status: StoreStatus; reviewNote?: string | null } | null;
   counts: { orders: number; wishlist: number; reviews: number };
@@ -265,12 +267,17 @@ export interface Message {
 }
 
 export interface Conversation {
+  iBlocked?: boolean; // I blocked the other person
+  canReply?: boolean; // false if either side blocked the other
   id: string;
-  productId: string;
+  productId: string | null;
+  serviceId?: string | null;
   buyerId: string;
   storeId: string;
   createdAt: string;
-  product: { id: string; title: string; brand: string; price: string; currency?: Currency; partNumber?: string | null; isActive: boolean; images: ProductImage[] };
+  // A chat is about a product or a service listing.
+  product: { id: string; title: string; brand: string; price: string; currency?: Currency; partNumber?: string | null; isActive: boolean; images: ProductImage[] } | null;
+  service?: { id: string; title: string; priceFrom: number | null; priceTo: number | null; isActive: boolean; images: ProductImage[]; type: { name: string; icon: string | null } } | null;
   store: StoreSummary;
   buyer: { id: string; fullName: string };
   viewerIsSeller: boolean;
@@ -339,4 +346,60 @@ export interface AssistantReply {
   products?: Product[];
   quickReplies?: string[];
   action?: { type: AssistantActionType; label: string };
+}
+
+// ---- services ----
+export interface ServiceType {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  description?: string | null;
+  serviceCount?: number;
+}
+
+export interface ServiceListing {
+  id: string;
+  storeId: string;
+  typeId: string;
+  title: string;
+  description: string | null;
+  priceFrom: number | null;
+  priceTo: number | null;
+  durationMinutes: number | null;
+  images: string[];
+  type: { id: string; name: string; slug: string; icon: string | null };
+  store: { id: string; name: string; slug: string; verified: boolean; city: string | null; district: string | null; latitude: number | null; longitude: number | null; logoUrl?: string | null };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceTypeRequest {
+  id: string;
+  name: string;
+  note: string | null;
+  status: 'PENDING' | 'APPROVED' | 'DECLINED';
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  serviceTypeId: string | null;
+}
+
+export type AppointmentStatus = 'REQUESTED' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED';
+
+export interface Appointment {
+  id: string;
+  status: AppointmentStatus;
+  expired: boolean;
+  scheduledAt: string;
+  vehicle: string | null;
+  note: string | null;
+  sellerNote: string | null;
+  createdAt: string;
+  respondedAt: string | null;
+  conversationId: string | null;
+  viewerIsSeller: boolean;
+  service: { id: string; title: string; type: { name: string; icon: string | null }; image: string | null; priceFrom: number | null; priceTo: number | null; durationMinutes: number | null };
+  store: { id: string; name: string; slug: string; city: string | null; district: string | null; latitude: number | null; longitude: number | null; address: string | null };
+  buyer: { id: string; fullName: string };
 }

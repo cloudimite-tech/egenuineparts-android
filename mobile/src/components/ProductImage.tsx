@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Image, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { resolveImageUrl } from '../api/config';
-import { colors, radius } from '../theme/theme';
+import { colors, radius, themed } from '../theme/theme';
 import { categoryIconName } from './CategoryIcon';
 
 interface Props {
@@ -24,19 +24,19 @@ export function ProductImage({ url, categorySlug, categoryIcon, style, iconSize 
       {uri && !failed ? (
         <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
       ) : (
-        <MaterialCommunityIcons name={categoryIconName(categorySlug, categoryIcon)} size={iconSize} color="#B8B8C0" />
+        <MaterialCommunityIcons name={categoryIconName(categorySlug, categoryIcon)} size={iconSize} color={colors.textFaint} />
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   box: {
-    backgroundColor: '#F1F1F4',
+    backgroundColor: colors.muted,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-});
+}));
 
 export { colors };

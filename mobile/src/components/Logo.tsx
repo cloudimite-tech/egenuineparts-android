@@ -1,22 +1,30 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { colors, themed, themeMode } from '../theme/theme';
+import { Image, StyleSheet, View } from 'react-native';
+import { Text } from './Themed';
 
 const WORDMARK = require('../../assets/brand/logo-wordmark.png');
-const RATIO = 1400 / 324; // wordmark width / height
+const WORDMARK_LIGHT = require('../../assets/brand/logo-wordmark-light.png');
+const RATIO = 2249 / 341; // wordmark width / height
 
-// The Genuine Parts.lk logo. On dark backgrounds pass `onDark` to sit it on
-// a white pill so the navy lettering stays readable.
+// The AutoGuide logo (mark + wordmark). On dark backgrounds pass `onDark`
+// for the white-lettered version.
 export function Logo({ height = 34, onDark, tagline }: { height?: number; onDark?: boolean; tagline?: string }) {
-  const img = <Image source={WORDMARK} style={{ height, width: height * RATIO }} resizeMode="contain" accessibilityLabel="Genuine Parts.lk" />;
+  // On a light surface use the dark lettering — unless the whole app is dark.
+  const light = onDark ?? themeMode === 'dark';
   return (
     <View>
-      {onDark ? <View style={styles.pill}>{img}</View> : img}
-      {tagline ? <Text style={[styles.tagline, onDark && { color: '#C7C7E8' }]}>{tagline}</Text> : null}
+      <Image
+        source={light ? WORDMARK_LIGHT : WORDMARK}
+        style={{ height, width: height * RATIO }}
+        resizeMode="contain"
+        accessibilityLabel="AutoGuide"
+      />
+      {tagline ? <Text style={[styles.tagline, light && { color: '#D6D3D3' }]}>{tagline}</Text> : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  pill: { backgroundColor: '#FFFFFF', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start' },
-  tagline: { color: '#6B6B73', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginTop: 6 },
-});
+const styles = themed(() => StyleSheet.create({
+  tagline: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginTop: 6 },
+}));

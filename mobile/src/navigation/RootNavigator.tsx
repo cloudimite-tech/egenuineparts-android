@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
-import { DefaultTheme, LinkingOptions, NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, View } from 'react-native';
+import { Text } from '../components/Themed';
+import { DarkTheme, DefaultTheme, LinkingOptions, NavigationContainer, NavigationState } from '@react-navigation/native';
+import { Appearance } from 'react-native';
+import { useThemeStore } from '../store/themeStore';
 import { SERVER_ORIGIN } from '../api/config';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
@@ -26,6 +29,7 @@ import { WriteReviewScreen } from '../screens/WriteReviewScreen';
 import { WishlistScreen } from '../screens/WishlistScreen';
 import { GarageScreen } from '../screens/GarageScreen';
 import { ChatConversationScreen } from '../screens/ChatConversationScreen';
+import { MessagesScreen } from '../screens/MessagesScreen';
 import { AssistantScreen } from '../screens/AssistantScreen';
 import { SellerDashboardScreen } from '../screens/seller/SellerDashboardScreen';
 import { StoreSetupScreen } from '../screens/seller/StoreSetupScreen';
@@ -35,16 +39,28 @@ import { SellerOrdersScreen } from '../screens/seller/SellerOrdersScreen';
 import { SellerGateScreen } from '../screens/seller/SellerGateScreen';
 import { SellerApplicationScreen } from '../screens/seller/SellerApplicationScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
-import { AdminDashboardScreen } from '../screens/admin/AdminDashboardScreen';
-import { AdminSellerDetailScreen } from '../screens/admin/AdminSellerDetailScreen';
+import { VerifyEmailScreen } from '../screens/VerifyEmailScreen';
+import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { DeleteAccountScreen } from '../screens/DeleteAccountScreen';
+import { BlockedUsersScreen } from '../screens/BlockedUsersScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
+import { ChangeEmailScreen } from '../screens/ChangeEmailScreen';
+import { ServiceListScreen } from '../screens/services/ServiceListScreen';
+import { ServiceDetailScreen } from '../screens/services/ServiceDetailScreen';
+import { BookAppointmentScreen } from '../screens/services/BookAppointmentScreen';
+import { AppointmentsScreen } from '../screens/services/AppointmentsScreen';
+import { SellerServicesScreen } from '../screens/services/SellerServicesScreen';
+import { ServiceFormScreen } from '../screens/services/ServiceFormScreen';
+import { TermsGate } from '../components/TermsGate';
 import { toast } from '../store/toastStore';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Shared links open straight in the app: genuineparts://p/<id> (from the
+// Shared links open straight in the app: autoguide://p/<id> (from the
 // share page's "Open in the app" button) and https://…/p/<id> (App Links).
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ['genuineparts://', SERVER_ORIGIN, 'https://genuineparts.lk', 'https://www.genuineparts.lk'],
+  prefixes: ['autoguide://', SERVER_ORIGIN, 'https://autoguide.lk', 'https://www.autoguide.lk'],
   config: {
     screens: {
       ProductDetail: 'p/:productId',
@@ -53,7 +69,11 @@ const linking: LinkingOptions<RootStackParamList> = {
   },
 };
 
-const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.accent } };
+// Built at render time so it follows the light/dark switch.
+const navThemeFor = (mode: 'light' | 'dark') => {
+  const base = mode === 'dark' ? DarkTheme : DefaultTheme;
+  return { ...base, colors: { ...base.colors, background: colors.bg, card: colors.surface, text: colors.text, border: colors.border, primary: colors.accent } };
+};
 
 // Keeps per-account state (cart, wishlist, unread chats, live socket) in
 // step with whoever is signed in — and wipes it on sign-out.
@@ -126,6 +146,15 @@ function CheckingAccount() {
 export function RootNavigator() {
   const { hydrate, hydrated } = useAuthStore();
   const sellerGate = useSellerGate();
+  const { mode, version, hydrated: themeReady } = useThemeStore();
+  // Keep the user on the same screen when the theme switches (the tree remounts).
+  const navState = React.useRef<NavigationState | undefined>(undefined);
+
+  useEffect(() => {
+    useThemeStore.getState().hydrate();
+    const sub = Appearance.addChangeListener(() => useThemeStore.getState().systemChanged());
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     hydrate();
@@ -135,7 +164,7 @@ export function RootNavigator() {
 
   if (hydrated && sellerGate === 'unknown') return <CheckingAccount />;
 
-  if (!hydrated) {
+  if (!hydrated || !themeReady) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.headerBg }}>
         <ActivityIndicator color={colors.accent} />
@@ -144,7 +173,13 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navTheme} linking={linking}>
+    <NavigationContainer
+      key={`theme-${version}`}
+      theme={navThemeFor(mode)}
+      linking={navState.current ? { ...linking, getInitialURL: () => null } : linking}
+      initialState={navState.current}
+      onStateChange={(st) => (navState.current = st)}
+    >
       <SessionSync />
       {/* Opens straight into browsing — sign-in is only asked for when needed. */}
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -168,6 +203,7 @@ export function RootNavigator() {
         <Stack.Screen name="Wishlist" component={WishlistScreen} />
         <Stack.Screen name="Garage" component={GarageScreen} />
         <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
+        <Stack.Screen name="Messages" component={MessagesScreen} />
         <Stack.Screen name="Assistant" component={AssistantScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="SellerDashboard" component={SellerDashboardScreen} />
         <Stack.Screen name="StoreSetup" component={StoreSetupScreen} />
@@ -177,11 +213,23 @@ export function RootNavigator() {
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="SellerGate" component={SellerGateScreen} />
         <Stack.Screen name="SellerApplication" component={SellerApplicationScreen} />
-        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-        <Stack.Screen name="AdminSellerDetail" component={AdminSellerDetailScreen} />
+        <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+        <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+        <Stack.Screen name="ChangeEmail" component={ChangeEmailScreen} />
+        <Stack.Screen name="ServiceList" component={ServiceListScreen} />
+        <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
+        <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="Appointments" component={AppointmentsScreen} />
+        <Stack.Screen name="SellerServices" component={SellerServicesScreen} />
+        <Stack.Screen name="ServiceForm" component={ServiceFormScreen} />
           </>
         )}
       </Stack.Navigator>
+      <TermsGate />
       <ToastHost />
     </NavigationContainer>
   );

@@ -4,8 +4,8 @@ import { db } from '../db/client';
 import { productImages, products, stores } from '../db/schema';
 import { presentPrice } from '../products/pricing';
 
-const PACKAGE = 'lk.genuineparts.app';
-const SCHEME = 'genuineparts';
+const PACKAGE = 'lk.autoguide.app';
+const SCHEME = 'autoguide';
 
 const esc = (s: unknown) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -33,29 +33,29 @@ function page(o: { base: string; path: string; title: string; description: strin
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(o.title)}</title>
 <meta name="description" content="${esc(o.description)}">
-<meta property="og:type" content="product"><meta property="og:site_name" content="Genuine Parts.lk">
+<meta property="og:type" content="product"><meta property="og:site_name" content="AutoGuide">
 <meta property="og:title" content="${esc(o.title)}"><meta property="og:description" content="${esc(o.description)}">
 <meta property="og:url" content="${esc(`${o.base}/${o.path}`)}">
 ${o.image ? `<meta property="og:image" content="${esc(o.image)}"><meta name="twitter:card" content="summary_large_image">` : ''}
-<meta name="theme-color" content="#2E2D7C">
+<meta name="theme-color" content="#231F20">
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#F4F4F6;color:#111114}
-header{background:linear-gradient(135deg,#1C1B54,#2E2D7C 60%,#3B3AA0);color:#fff;padding:16px 20px;border-bottom:3px solid #D2262B;font-weight:900;font-size:18px}
-header span{color:#ff8a8d}main{max-width:520px;margin:0 auto;padding:16px}
+header{background:linear-gradient(135deg,#161314,#231F20 60%,#3A3536);color:#fff;padding:16px 20px;border-bottom:3px solid #E5120B;font-weight:900;font-size:18px}
+header span{color:#FF5A50}main{max-width:520px;margin:0 auto;padding:16px}
 .card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.06)}
-.img{width:100%;aspect-ratio:1/0.86;object-fit:cover;background:#ECECF8;display:block}
+.img{width:100%;aspect-ratio:1/0.86;object-fit:cover;background:#EFEEEE;display:block}
 .body{padding:18px}h1{font-size:20px;margin:0 0 6px}.sub{color:#6B6B73;margin:0 0 12px}
-.price{font-size:26px;font-weight:900;color:#D2262B}.was{color:#9C9CA3;text-decoration:line-through;margin-left:8px}
+.price{font-size:26px;font-weight:900;color:#E5120B}.was{color:#9C9CA3;text-decoration:line-through;margin-left:8px}
 .btn{display:block;text-align:center;text-decoration:none;font-weight:800;border-radius:14px;padding:15px;margin-top:12px}
-.primary{background:#D2262B;color:#fff}.ghost{border:1.5px solid #2E2D7C;color:#2E2D7C}
+.primary{background:#E5120B;color:#fff}.ghost{border:1.5px solid #231F20;color:#231F20}
 .note{color:#6B6B73;font-size:13px;text-align:center;margin-top:14px}
 </style></head>
-<body><header>Genuine Parts<span>.lk</span></header><main><div class="card">
+<body><header>Auto<span>Guide</span></header><main><div class="card">
 ${o.image ? `<img class="img" src="${esc(o.image)}" alt="">` : ''}
 <div class="body"><h1>${esc(o.heading)}</h1><p class="sub">${esc(o.sub)}</p>
 ${o.price ? `<div><span class="price">${esc(o.price)}</span>${o.was ? `<span class="was">${esc(o.was)}</span>` : ''}</div>` : ''}
 <a class="btn primary" href="${esc(intent)}" onclick="if(!/Android/i.test(navigator.userAgent)){this.href='${esc(appUrl)}'}">Open in the app</a>
-${download ? `<a class="btn ghost" href="${esc(download)}">Get the Genuine Parts.lk app</a>` : ''}
+${download ? `<a class="btn ghost" href="${esc(download)}">Get the AutoGuide app</a>` : ''}
 </div></div><p class="note">Cash on delivery island-wide · Verified sellers · Chat safely in the app</p></main></body></html>`;
 }
 
@@ -82,8 +82,8 @@ export class ShareController {
       page({
         base,
         path: `p/${p.id}`,
-        title: `${p.title} – ${price} | Genuine Parts.lk`,
-        description: `${p.brand}${p.partNumber ? ` · ${p.partNumber}` : ''} · ${price}${usdNote} · Sold by ${p.store.name} on Genuine Parts.lk`,
+        title: `${p.title} – ${price} | AutoGuide`,
+        description: `${p.brand}${p.partNumber ? ` · ${p.partNumber}` : ''} · ${price}${usdNote} · Sold by ${p.store.name} on AutoGuide`,
         image: absolute(p.images[0]?.url, base),
         heading: p.title,
         sub: `${p.brand}${p.partNumber ? ` · Part no. ${p.partNumber}` : ''} · ${p.store.name}`,
@@ -105,8 +105,8 @@ export class ShareController {
       page({
         base,
         path: `s/${s.slug}`,
-        title: `${s.name} | Genuine Parts.lk`,
-        description: s.bio || `Verified seller on Genuine Parts.lk${s.shipsFrom ? ` · Ships from ${s.shipsFrom}` : ''}`,
+        title: `${s.name} | AutoGuide`,
+        description: s.bio || `Verified seller on AutoGuide${s.shipsFrom ? ` · Ships from ${s.shipsFrom}` : ''}`,
         image: absolute(s.logoUrl, base),
         heading: s.name,
         sub: `Verified seller${s.shipsFrom ? ` · Ships from ${s.shipsFrom}` : ''}`,

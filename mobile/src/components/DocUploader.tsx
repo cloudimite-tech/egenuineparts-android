@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { API_BASE_URL } from '../api/config';
 import { getAuthToken } from '../api/authToken';
 import { toast } from '../store/toastStore';
@@ -115,7 +116,7 @@ export function DocUploader({ kind, title, hint, value, onChange, error, allowPd
             <Image source={{ uri: value.previewUri }} style={styles.thumb} />
           ) : (
             <View style={[styles.thumb, styles.icon]}>
-              <Ionicons name={value.mimeType === 'application/pdf' ? 'document-attach-outline' : 'image-outline'} size={26} color={colors.navy} />
+              <Ionicons name={value.mimeType === 'application/pdf' ? 'document-attach-outline' : 'image-outline'} size={26} color={colors.link} />
             </View>
           )}
           <View style={{ flex: 1 }}>
@@ -128,7 +129,7 @@ export function DocUploader({ kind, title, hint, value, onChange, error, allowPd
         </View>
       ) : (
         <TouchableOpacity style={[styles.box, !!error && { borderColor: colors.accent }]} onPress={choose} disabled={busy}>
-          {busy ? <ActivityIndicator color={colors.navy} /> : <Ionicons name={selfie ? 'camera-outline' : 'cloud-upload-outline'} size={26} color={colors.navy} />}
+          {busy ? <ActivityIndicator color={colors.link} /> : <Ionicons name={selfie ? 'camera-outline' : 'cloud-upload-outline'} size={26} color={colors.link} />}
           <Text style={styles.boxTitle}>{busy ? 'Uploading…' : selfie ? 'Take selfie' : 'Upload'}</Text>
           <Text style={styles.boxSub}>{hint}</Text>
         </TouchableOpacity>
@@ -138,10 +139,10 @@ export function DocUploader({ kind, title, hint, value, onChange, error, allowPd
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   label: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 6 },
-  box: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.navy, backgroundColor: colors.navySoft, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', gap: 4 },
-  boxTitle: { fontWeight: '800', color: colors.navyDark, fontSize: 15 },
+  box: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.link, backgroundColor: colors.navySoft, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', gap: 4 },
+  boxTitle: { fontWeight: '800', color: colors.link, fontSize: 15 },
   boxSub: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 10 },
   thumb: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.bg },
@@ -150,4 +151,4 @@ const styles = StyleSheet.create({
   meta: { color: colors.success, fontSize: 12, marginTop: 2, fontWeight: '600' },
   replace: { color: colors.accent, fontWeight: '800' },
   err: { color: colors.accent, fontSize: 12, marginTop: 6 },
-});
+}));

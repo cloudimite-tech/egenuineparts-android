@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, shadow, spacing } from '../theme/theme';
+import { colors, radius, shadow, spacing, themed } from '../theme/theme';
 import { Product } from '../types';
 import { ProductImage } from './ProductImage';
 import { PriceTag } from './PriceTag';
@@ -37,7 +38,7 @@ export function ProductGridCard({ product, onPress, saved, onToggleSave, width }
         ) : null}
         {onToggleSave ? (
           <TouchableOpacity style={styles.heart} onPress={onToggleSave} hitSlop={8}>
-            <Ionicons name={saved ? 'heart' : 'heart-outline'} size={18} color={saved ? colors.accent : colors.text} />
+            <Ionicons name={saved ? 'heart' : 'heart-outline'} size={18} color={saved ? colors.accent : colors.ink} />
           </TouchableOpacity>
         ) : null}
         {product.fitsVehicle ? (
@@ -78,9 +79,9 @@ export function ProductGridCard({ product, onPress, saved, onToggleSave, width }
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     overflow: 'hidden',
     marginBottom: spacing.sm + 4,
@@ -129,9 +130,9 @@ const styles = StyleSheet.create({
   fitsText: { color: colors.white, fontSize: 11, fontWeight: '800' },
   soldOut: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
   soldOutText: { backgroundColor: colors.navy, color: colors.white, fontWeight: '800', fontSize: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, overflow: 'hidden' },
-});
+}));

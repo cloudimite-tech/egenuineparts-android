@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, count, eq, ne } from 'drizzle-orm';
 import { db } from '../db/client';
-import { orders, reviews, stores, users, wishlistItems } from '../db/schema';
+import { orders, reviews, stores, userBlocks, users, wishlistItems } from '../db/schema';
 import { sellerStatusFor } from '../common/seller-access';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -19,9 +19,12 @@ export class UsersService {
       db.select({ n: count() }).from(wishlistItems).where(eq(wishlistItems.userId, userId)),
       db.select({ n: count() }).from(reviews).where(eq(reviews.userId, userId)),
     ]);
-    const { passwordHash, ...safeUser } = user;
+    const { passwordHash, totpSecret, totpPendingSecret, tokenVersion, ...safeUser } = user;
     return {
       ...safeUser,
+      emailVerified: !!user.emailVerifiedAt,
+      // false → the app asks the user to accept the Terms of Use (Google Play UGC rule).
+      termsAccepted: !!user.termsAcceptedAt,
       sellerStatus: await sellerStatusFor(userId, user.role),
       store: store ?? null,
       counts: { orders: Number(o.n), wishlist: Number(w.n), reviews: Number(r.n) },
@@ -42,5 +45,26 @@ export class UsersService {
     if (dto.district !== undefined) patch.district = dto.district;
     if (Object.keys(patch).length) await db.update(users).set(patch).where(eq(users.id, userId));
     return this.me(userId);
+  }
+
+  async acceptTerms(userId: string) {
+    await db.update(users).set({ termsAcceptedAt: new Date() }).where(eq(users.id, userId));
+    return { accepted: true };
+  }
+
+  async blocks(userId: string) {
+    const rows = await db
+      .select({ userId: userBlocks.blockedId, name: users.fullName, createdAt: userBlocks.createdAt, storeName: stores.name })
+      .from(userBlocks)
+      .innerJoin(users, eq(userBlocks.blockedId, users.id))
+      .leftJoin(stores, eq(stores.ownerId, users.id))
+      .where(eq(userBlocks.blockerId, userId));
+    // Display names only — never contact details.
+    return rows.map((r) => ({ userId: r.userId, name: r.storeName ?? r.name.split(' ')[0], createdAt: r.createdAt }));
+  }
+
+  async unblock(userId: string, blockedId: string) {
+    await db.delete(userBlocks).where(and(eq(userBlocks.blockerId, userId), eq(userBlocks.blockedId, blockedId)));
+    return { unblocked: true };
   }
 }

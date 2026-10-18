@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, AppState, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../../theme/theme';
+import { colors, HEADER_TOP, radius, spacing, themed } from '../../theme/theme';
 import { apiClient } from '../../api/client';
 import { GradientHeader } from '../../components/GradientHeader';
 import { Logo } from '../../components/Logo';
@@ -14,7 +15,7 @@ import { MyApplication, SellerStatus } from '../../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SellerGate'>;
 
-const COPY: Record<Exclude<SellerStatus, 'APPROVED'>, { icon: keyof typeof Ionicons.glyphMap; tone: string; bg: string; title: string; text: string }> = {
+const COPY: Record<Exclude<SellerStatus, 'APPROVED'>, { icon: keyof typeof Ionicons.glyphMap; tone: string; bg: string; title: string; text: string }> = themed(() => ({
   NOT_SUBMITTED: {
     icon: 'document-text-outline', tone: colors.navy, bg: colors.navySoft,
     title: 'Complete your seller application',
@@ -33,9 +34,9 @@ const COPY: Record<Exclude<SellerStatus, 'APPROVED'>, { icon: keyof typeof Ionic
   SUSPENDED: {
     icon: 'ban-outline', tone: colors.accent, bg: colors.accentSoft,
     title: 'Your store is suspended',
-    text: 'Your listings are hidden from buyers. Contact support@genuineparts.lk to resolve this.',
+    text: 'Your listings are hidden from buyers. Contact support@autoguide.lk to resolve this.',
   },
-};
+}));
 
 // Seller accounts land here until an admin approves them. Once approved,
 // the navigator swaps this for the full app automatically.
@@ -82,7 +83,7 @@ export function SellerGateScreen({ navigation }: Props) {
   const steps: { label: string; done: boolean; active: boolean }[] = [
     { label: isBuyer ? 'Signed in' : 'Seller account created', done: true, active: false },
     { label: 'NIC, BR certificate, location & selfie', done: status !== 'NOT_SUBMITTED' && status !== 'REJECTED', active: status === 'NOT_SUBMITTED' || status === 'REJECTED' },
-    { label: 'Verified by Genuine Parts.lk', done: false, active: status === 'PENDING' },
+    { label: 'Verified by AutoGuide', done: false, active: status === 'PENDING' },
     { label: 'Start selling', done: false, active: false },
   ];
 
@@ -157,7 +158,7 @@ function Row({ label, value, last }: { label: string; value?: string | null; las
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   hero: { paddingTop: HEADER_TOP + 8, padding: spacing.lg, borderBottomWidth: 3, borderBottomColor: colors.accent },
   heroTitle: { color: colors.white, fontSize: 26, fontWeight: '900', marginTop: spacing.md },
   heroSub: { color: 'rgba(255,255,255,0.75)', marginTop: 2 },
@@ -165,10 +166,10 @@ const styles = StyleSheet.create({
   statusTitle: { fontSize: 19, fontWeight: '900', textAlign: 'center' },
   statusText: { color: colors.text, textAlign: 'center', lineHeight: 21 },
   meta: { color: colors.textMuted, fontSize: 12, marginTop: 4 },
-  noteBox: { alignSelf: 'stretch', backgroundColor: colors.white, borderRadius: radius.sm, padding: 12, marginTop: 8 },
+  noteBox: { alignSelf: 'stretch', backgroundColor: colors.surface, borderRadius: radius.sm, padding: 12, marginTop: 8 },
   noteLabel: { fontSize: 10, fontWeight: '900', color: colors.textMuted, letterSpacing: 0.8 },
   noteText: { color: colors.text, marginTop: 4, lineHeight: 20 },
-  card: { backgroundColor: colors.white, borderRadius: radius.md, marginHorizontal: spacing.md, marginBottom: spacing.md, padding: spacing.md },
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, marginHorizontal: spacing.md, marginBottom: spacing.md, padding: spacing.md },
   step: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   dot: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   dotNum: { fontSize: 12, fontWeight: '800', color: colors.textFaint },
@@ -177,4 +178,4 @@ const styles = StyleSheet.create({
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   rowLabel: { color: colors.textMuted },
   rowValue: { color: colors.text, fontWeight: '700', flexShrink: 1, textAlign: 'right' },
-});
+}));

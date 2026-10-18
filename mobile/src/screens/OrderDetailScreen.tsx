@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { FulfillmentStatus, Order, OrderItem } from '../types';
 import { Header } from '../components/Header';
@@ -200,8 +201,8 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
+const styles = themed(() => StyleSheet.create({
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
   cardTitle: { fontSize: 16, fontWeight: '800', marginBottom: spacing.sm },
   storeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   storeName: { fontWeight: '800', fontSize: 15 },
@@ -218,4 +219,4 @@ const styles = StyleSheet.create({
   reviewedText: { color: colors.success, fontWeight: '700', fontSize: 13 },
   addr: { fontSize: 15, color: colors.text, lineHeight: 21 },
   strong: { fontWeight: '900', color: colors.text, fontSize: 16 },
-});
+}));

@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/theme';
+import { colors, themed } from '../theme/theme';
 
 export function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -49,8 +50,8 @@ export function StarPicker({ value, onChange }: { value: number; onChange: (v: n
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   inline: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   inlineText: { fontSize: 12, fontWeight: '700', color: colors.text },
   muted: { fontSize: 12, color: colors.textMuted, fontWeight: '400' },
-});
+}));

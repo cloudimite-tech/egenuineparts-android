@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { themed } from '../theme/theme';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Themed';
 
 function parts(ms: number) {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -43,11 +45,11 @@ export function Countdown({ endsAt, onEnd, dark }: { endsAt: string; onEnd?: () 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   box: { backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2, minWidth: 26, alignItems: 'center' },
   boxDark: { backgroundColor: '#111' },
   text: { color: '#fff', fontWeight: '900', fontSize: 12, fontVariant: ['tabular-nums'] },
   textDark: { color: '#fff' },
   colon: { color: '#fff', fontWeight: '900', fontSize: 12 },
-});
+}));

@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { colors, radius, shadow, spacing } from '../../theme/theme';
+import { colors, radius, shadow, spacing, themed } from '../../theme/theme';
 import { apiClient } from '../../api/client';
 import { Product } from '../../types';
 import { Header, HeaderIconButton } from '../../components/Header';
@@ -126,13 +127,13 @@ export function SellerProductsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: 12, backgroundColor: colors.white, borderRadius: radius.md, padding: 12, marginBottom: spacing.sm + 2 },
+const styles = themed(() => StyleSheet.create({
+  card: { flexDirection: 'row', gap: 12, backgroundColor: colors.surface, borderRadius: radius.md, padding: 12, marginBottom: spacing.sm + 2 },
   brand: { color: colors.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   title: { fontWeight: '700', fontSize: 14, marginTop: 1 },
   price: { fontWeight: '900', fontSize: 15, marginTop: 4 },
-  salePill: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: '#FFF1EA', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
-  salePillText: { color: '#C2410C', fontSize: 11, fontWeight: '800' },
+  salePill: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: colors.warningSoft, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
+  salePillText: { color: colors.warning, fontSize: 11, fontWeight: '800' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' },
   stock: { backgroundColor: colors.successSoft, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   stockLow: { backgroundColor: colors.warningSoft },
@@ -153,4 +154,4 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   fabText: { color: colors.white, fontWeight: '800', fontSize: 15 },
-});
+}));

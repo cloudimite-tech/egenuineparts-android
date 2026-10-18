@@ -4,6 +4,8 @@ export interface JwtUser {
   sub: string;
   role: 'BUYER' | 'SELLER' | 'ADMIN' | 'GUEST';
   email?: string;
+  tv?: number; // token version — bumped to sign the user out everywhere
+  aud?: string; // 'admin' for admin-panel sessions
 }
 
 export const CurrentUser = createParamDecorator(

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { SheetModal } from './SheetModal';
 import { TextField } from './TextField';
 import { Button } from './Button';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { SelectedVehicle, useVehicleStore, vehicleLabel } from '../store/vehicleStore';
@@ -121,7 +122,7 @@ function Row({ title, subtitle, selected, onPress }: { title: string; subtitle?:
 
 const capitalize = (s: string) => s.trim().replace(/\b\w/g, (c) => c.toUpperCase());
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   lead: { color: colors.textMuted, marginBottom: spacing.md },
   label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: colors.textMuted, marginTop: spacing.sm, marginBottom: spacing.sm },
   row: {
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   rowSub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.sm },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
-  chipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
+  chipActive: { backgroundColor: colors.navy, borderColor: colors.link },
   chipText: { fontWeight: '600', fontSize: 13, color: colors.text },
   error: { color: colors.accent, marginBottom: spacing.sm, marginTop: -8 },
-});
+}));

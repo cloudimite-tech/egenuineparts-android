@@ -5,12 +5,19 @@ import { join } from 'path';
 import { NestFactory } from '@nestjs/core';
 import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { UPLOADS_DIR } from './uploads/uploads.controller';
 import { ensureFreshRate } from './products/pricing';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
+  // No CORS: the mobile app isn't a browser, and the admin panel is served
+  // from this same origin — so other websites can't call the API from a browser.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.set('trust proxy', true);
+  // Standard security headers. Page-specific Content-Security-Policy is set
+  // by the share pages, legal pages and admin panel themselves.
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' }, crossOriginEmbedderPolicy: false }));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.setGlobalPrefix('api', {
     // Public share pages + Android App Links file live at the site root.
@@ -18,6 +25,16 @@ async function bootstrap() {
       { path: 'p/:id', method: RequestMethod.GET },
       { path: 's/:slug', method: RequestMethod.GET },
       { path: '.well-known/assetlinks.json', method: RequestMethod.GET },
+      // Public legal / account-deletion pages (Google Play) and the web admin panel.
+      { path: 'terms', method: RequestMethod.GET },
+      { path: 'privacy', method: RequestMethod.GET },
+      { path: 'account/delete', method: RequestMethod.ALL },
+      { path: 'admin', method: RequestMethod.GET },
+      { path: 'admin/app.js', method: RequestMethod.GET },
+      { path: 'admin/app.css', method: RequestMethod.GET },
+      { path: 'admin/logo-mark.png', method: RequestMethod.GET },
+      { path: 'admin/logo.png', method: RequestMethod.GET },
+      { path: 'admin/logo-light.png', method: RequestMethod.GET },
     ],
   });
 
@@ -49,6 +66,6 @@ async function bootstrap() {
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port, '0.0.0.0');
   // eslint-disable-next-line no-console
-  console.log(`Genuine Parts.lk API running on http://0.0.0.0:${port}/api`);
+  console.log(`AutoGuide API running on http://0.0.0.0:${port}/api`);
 }
 bootstrap();

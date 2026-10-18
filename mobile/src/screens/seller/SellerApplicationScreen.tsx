@@ -1,12 +1,13 @@
 import { useNoScreenshots } from '../../utils/useNoScreenshots';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../../navigation/types';
-import { colors, radius, spacing } from '../../theme/theme';
+import { colors, radius, spacing, themed } from '../../theme/theme';
 import { apiClient } from '../../api/client';
 import { Header } from '../../components/Header';
 import { TextField } from '../../components/TextField';
@@ -229,7 +230,7 @@ export function SellerApplicationScreen({ navigation }: Props) {
       <Header title="Seller application" subtitle="Reviewed by our team, usually within 1–2 working days." back />
       <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={{ padding: spacing.md, paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         <View style={styles.privacy}>
-          <Ionicons name="lock-closed-outline" size={16} color={colors.navy} />
+          <Ionicons name="lock-closed-outline" size={16} color={colors.link} />
           <Text style={styles.privacyText}>Your NIC, certificate and selfie are only seen by our verification team — never by buyers.</Text>
         </View>
 
@@ -294,11 +295,11 @@ export function SellerApplicationScreen({ navigation }: Props) {
           </Text>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <TouchableOpacity style={styles.mapBtn} onPress={useMyLocation} disabled={locating}>
-              {locating ? <ActivityIndicator size="small" color={colors.navy} /> : <Ionicons name="locate-outline" size={16} color={colors.navy} />}
+              {locating ? <ActivityIndicator size="small" color={colors.link} /> : <Ionicons name="locate-outline" size={16} color={colors.link} />}
               <Text style={styles.mapBtnText}>Use my current location</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.mapBtn} onPress={() => findOnMap(true)}>
-              <Ionicons name="search-outline" size={16} color={colors.navy} />
+              <Ionicons name="search-outline" size={16} color={colors.link} />
               <Text style={styles.mapBtnText}>Find address</Text>
             </TouchableOpacity>
           </View>
@@ -345,10 +346,10 @@ function Card({ step, title, icon, children }: { step: number; title: string; ic
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   privacy: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colors.navySoft, borderRadius: radius.sm, padding: 12, marginBottom: spacing.md },
-  privacyText: { flex: 1, color: colors.navyDark, fontSize: 12, lineHeight: 17 },
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
+  privacyText: { flex: 1, color: colors.link, fontSize: 12, lineHeight: 17 },
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.md },
   step: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
   stepText: { color: colors.white, fontWeight: '900', fontSize: 13 },
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
   sameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   sameText: { fontWeight: '600', color: colors.text },
   mapNote: { color: colors.textMuted, fontSize: 12, marginTop: 6, marginBottom: spacing.sm, lineHeight: 17 },
-  mapBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.navy, borderRadius: radius.sm, paddingVertical: 10 },
-  mapBtnText: { color: colors.navy, fontWeight: '700', fontSize: 12 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
-});
+  mapBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.link, borderRadius: radius.sm, paddingVertical: 10 },
+  mapBtnText: { color: colors.link, fontWeight: '700', fontSize: 12 },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
+}));

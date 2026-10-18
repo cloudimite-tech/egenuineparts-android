@@ -1,20 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Text, TextInput } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Category } from '../types';
 import { CategoryIcon } from '../components/CategoryIcon';
@@ -23,7 +15,7 @@ import { useBrowseFilterStore } from '../store/browseFilterStore';
 import { GradientHeader } from '../components/GradientHeader';
 
 type Props = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, 'Categories'>,
+  BottomTabScreenProps<MainTabParamList, 'Products'>,
   NativeStackScreenProps<RootStackParamList>
 >;
 
@@ -70,9 +62,9 @@ export function CategoriesScreen({ navigation }: Props) {
   const selected = categories.find((c) => c.id === selectedId) ?? null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.surface }}>
       <GradientHeader style={styles.header}>
-        <Text style={styles.title}>Categories</Text>
+        <Text style={styles.title}>Product Categories</Text>
         <View style={styles.search}>
           <Ionicons name="search" size={18} color={colors.textMuted} />
           <TextInput
@@ -153,7 +145,7 @@ export function CategoriesScreen({ navigation }: Props) {
                     <Text style={styles.shopAllSub}>Every part in this category</Text>
                   </View>
                   <View style={styles.shopAllArrow}>
-                    <Ionicons name="arrow-forward" size={18} color={colors.black} />
+                    <Ionicons name="arrow-forward" size={18} color={colors.ink} />
                   </View>
                 </TouchableOpacity>
 
@@ -187,7 +179,13 @@ export function CategoriesScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
+  segment: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: radius.md, padding: 4, marginBottom: spacing.md, gap: 4 },
+  segBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: radius.sm },
+  segBtnOn: { backgroundColor: colors.surface },
+  segText: { color: '#C9C6C6', fontWeight: '700', fontSize: 13 },
+  segTextOn: { color: colors.text },
+  tileDesc: { fontSize: 11, color: colors.textMuted, marginTop: 3, lineHeight: 15 },
   header: {
     backgroundColor: colors.headerBg,
     paddingTop: HEADER_TOP,
@@ -201,7 +199,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     height: 46,
     paddingHorizontal: 14,
@@ -209,7 +207,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15, color: colors.text },
   rail: { width: SIDEBAR, backgroundColor: colors.bg, borderRightWidth: 1, borderRightColor: colors.divider },
   railItem: { alignItems: 'center', paddingVertical: 16, paddingHorizontal: 6, gap: 6 },
-  railItemActive: { backgroundColor: colors.white },
+  railItemActive: { backgroundColor: colors.surface },
   railMarker: { position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, borderRadius: 2, backgroundColor: colors.accent },
   railText: { fontSize: 11, textAlign: 'center', color: colors.textMuted, fontWeight: '600', lineHeight: 14 },
   railTextActive: { color: colors.accent, fontWeight: '800' },
@@ -225,7 +223,7 @@ const styles = StyleSheet.create({
   },
   shopAllTitle: { color: colors.white, fontWeight: '800', fontSize: 15 },
   shopAllSub: { color: '#A1A1AA', fontSize: 12, marginTop: 2 },
-  shopAllArrow: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  shopAllArrow: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
   gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: colors.textMuted, marginTop: spacing.lg, marginBottom: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: TILE_GAP },
   tile: {
@@ -257,4 +255,4 @@ const styles = StyleSheet.create({
   },
   searchIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   searchTitle: { fontWeight: '700', fontSize: 15 },
-});
+}));

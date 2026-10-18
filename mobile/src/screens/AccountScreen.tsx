@@ -1,15 +1,17 @@
 import React, { useCallback } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, spacing, themed } from '../theme/theme';
 import { Button } from '../components/Button';
 import { Logo } from '../components/Logo';
 import { GradientHeader } from '../components/GradientHeader';
 import { useAuthStore } from '../store/authStore';
+import { ThemePreference, useThemeStore } from '../store/themeStore';
 import { useChatStore } from '../store/chatStore';
 import { useVehicleStore, vehicleLabel } from '../store/vehicleStore';
 import { initials } from '../utils/format';
@@ -39,7 +41,7 @@ export function AccountScreen({ navigation }: Props) {
           <Text style={styles.guestTitle}>Your garage, orders and chats in one place</Text>
           <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
             <Button title="Sign in" onPress={() => navigation.navigate('Welcome')} />
-            <Button title="Create an account" variant="outline" onPress={() => navigation.navigate('Signup')} style={{ backgroundColor: 'transparent', borderColor: '#3F3F46' }} />
+            <Button title="Create an account" variant="onDark" onPress={() => navigation.navigate('Signup')} />
           </View>
         </GradientHeader>
         <View style={styles.perks}>
@@ -48,9 +50,9 @@ export function AccountScreen({ navigation }: Props) {
           <Perk icon="cash-outline" title="Cash on delivery" text="Order island-wide and pay on arrival." />
         </View>
         <TouchableOpacity style={styles.sellLink} onPress={() => navigation.navigate('Signup', { sell: true })}>
-          <Ionicons name="storefront-outline" size={16} color={colors.navy} />
+          <Ionicons name="storefront-outline" size={16} color={colors.link} />
           <Text style={styles.sellLinkText}>Want to sell parts? Create a seller account</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.navy} />
+          <Ionicons name="chevron-forward" size={14} color={colors.link} />
         </TouchableOpacity>
       </ScrollView>
     );
@@ -88,19 +90,7 @@ export function AccountScreen({ navigation }: Props) {
         </View>
       </GradientHeader>
 
-      {profile?.role === 'ADMIN' ? (
-        <TouchableOpacity style={[styles.sellCard, { backgroundColor: colors.navyDark }]} onPress={() => navigation.navigate('AdminDashboard')} activeOpacity={0.85}>
-          <View style={styles.storeIcon}>
-            <Ionicons name="shield-checkmark" size={22} color={colors.white} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sellOverline}>ADMIN</Text>
-            <Text style={styles.sellTitle}>Admin panel</Text>
-            <Text style={styles.sellSub}>Review and approve seller applications</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color={colors.white} />
-        </TouchableOpacity>
-      ) : profile?.store?.status === 'APPROVED' ? (
+      {profile?.store?.status === 'APPROVED' ? (
         <TouchableOpacity style={[styles.sellCard, { backgroundColor: colors.navy }]} onPress={() => navigation.navigate('SellerDashboard')} activeOpacity={0.85}>
           <View style={styles.storeIcon}>
             <Ionicons name="storefront" size={22} color={colors.white} />
@@ -108,7 +98,7 @@ export function AccountScreen({ navigation }: Props) {
           <View style={{ flex: 1 }}>
             <Text style={styles.sellOverline}>SELLER CENTRE</Text>
             <Text style={styles.sellTitle}>{profile.store.name}</Text>
-            <Text style={styles.sellSub}>Listings, orders and store settings</Text>
+            <Text style={styles.sellSub}>Listings, services, orders and appointments</Text>
           </View>
           <Ionicons name="chevron-forward" size={22} color={colors.white} />
         </TouchableOpacity>
@@ -123,18 +113,19 @@ export function AccountScreen({ navigation }: Props) {
         />
         <MenuItem icon="car-sport-outline" label="My garage" detail={vehicle ? vehicleLabel(vehicle) : undefined} onPress={() => navigation.navigate('Garage')} />
         <MenuItem icon="cube-outline" label="My orders" onPress={() => navigation.navigate('Orders')} />
+        <MenuItem icon="calendar-outline" label="My appointments" detail="Garages & services" onPress={() => navigation.navigate('Appointments', { as: 'buyer' })} />
         <MenuItem icon="heart-outline" label="Wishlist" onPress={() => navigation.navigate('Wishlist')} />
         <MenuItem
           icon="chatbubbles-outline"
           label="Messages"
           badge={unread}
-          onPress={() => navigation.navigate('Main', { screen: 'Messages' })}
+          onPress={() => navigation.navigate('Messages')}
           last
         />
       </View>
 
       <View style={styles.menu}>
-        {profile?.role !== 'ADMIN' && profile?.store?.status !== 'APPROVED' ? (
+        {profile?.store?.status !== 'APPROVED' ? (
           <MenuItem
             icon="storefront-outline"
             label="Become a seller"
@@ -143,8 +134,14 @@ export function AccountScreen({ navigation }: Props) {
           />
         ) : null}
         <MenuItem icon="help-buoy-outline" label="Ask the assistant" detail="Find parts, track orders" onPress={() => navigation.navigate('Assistant')} />
-        <MenuItem icon="shield-checkmark-outline" label="Buyer protection" detail="Chats & payments stay in-app" onPress={() => Alert.alert('Buyer protection', 'Keep conversations and payments inside Genuine Parts.lk. Sellers are verified, and contact details are blocked in chat so every order stays traceable.')} />
-        <MenuItem icon="help-circle-outline" label="Help & support" onPress={() => Alert.alert('Help & support', 'Email support@genuineparts.lk and we’ll get back to you within a day.')} last />
+        <MenuItem icon="shield-checkmark-outline" label="Buyer protection" detail="Chats & payments stay in-app" onPress={() => Alert.alert('Buyer protection', 'Keep conversations and payments inside AutoGuide. Sellers are verified, and contact details are blocked in chat so every order stays traceable.')} />
+        <MenuItem icon="help-circle-outline" label="Help & support" onPress={() => Alert.alert('Help & support', 'Email support@autoguide.lk and we’ll get back to you within a day.')} last />
+      </View>
+
+      <AppearanceCard />
+
+      <View style={styles.menu}>
+        <MenuItem icon="settings-outline" label="Settings & security" detail="Password, email, privacy" onPress={() => navigation.navigate('Settings')} last />
       </View>
 
       <TouchableOpacity style={styles.logout} onPress={confirmLogout}>
@@ -153,6 +150,35 @@ export function AccountScreen({ navigation }: Props) {
       </TouchableOpacity>
       <Text style={styles.email}>{profile?.email}</Text>
     </ScrollView>
+  );
+}
+
+// Light / dark mode. "System" follows the phone's own setting.
+function AppearanceCard() {
+  const { preference, setPreference } = useThemeStore();
+  const opts: { key: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { key: 'system', label: 'System', icon: 'phone-portrait-outline' },
+    { key: 'light', label: 'Light', icon: 'sunny-outline' },
+    { key: 'dark', label: 'Dark', icon: 'moon-outline' },
+  ];
+  return (
+    <View style={styles.appearance}>
+      <View style={styles.appearanceHead}>
+        <Ionicons name="contrast-outline" size={22} color={colors.text} />
+        <Text style={styles.menuLabel}>Appearance</Text>
+      </View>
+      <View style={styles.themeSeg}>
+        {opts.map((o) => {
+          const on = preference === o.key;
+          return (
+            <TouchableOpacity key={o.key} style={[styles.themeBtn, on && styles.themeBtnOn]} onPress={() => setPreference(o.key)} activeOpacity={0.85} accessibilityState={{ selected: on }}>
+              <Ionicons name={o.icon} size={16} color={on ? colors.white : colors.textMuted} />
+              <Text style={[styles.themeText, on && styles.themeTextOn]}>{o.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -184,7 +210,7 @@ function MenuItem({
     <TouchableOpacity style={[styles.menuItem, !last && styles.menuBorder]} onPress={onPress}>
       <Ionicons name={icon} size={22} color={colors.text} />
       <Text style={styles.menuLabel}>{label}</Text>
-      {detail ? <Text style={styles.menuDetail} numberOfLines={1}>{detail}</Text> : null}
+      {detail ? <Text style={styles.menuDetail} numberOfLines={1}>{detail}</Text> : <View style={{ flex: 1 }} />}
       {badge ? (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{badge}</Text>
@@ -209,7 +235,14 @@ function Perk({ icon, title, text }: { icon: keyof typeof Ionicons.glyphMap; tit
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
+  appearance: { backgroundColor: colors.surface, borderRadius: radius.md, marginHorizontal: spacing.md, marginTop: spacing.md, padding: spacing.md },
+  appearanceHead: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: spacing.md },
+  themeSeg: { flexDirection: 'row', backgroundColor: colors.bg, borderRadius: radius.sm, padding: 4, gap: 4 },
+  themeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 8 },
+  themeBtnOn: { backgroundColor: colors.navy },
+  themeText: { fontWeight: '700', fontSize: 13, color: colors.textMuted },
+  themeTextOn: { color: colors.white },
   guestHero: {
     backgroundColor: colors.headerBg,
     paddingTop: HEADER_TOP + 8,
@@ -219,7 +252,7 @@ const styles = StyleSheet.create({
   },
   logo: { fontSize: 22, fontWeight: '900', fontStyle: 'italic' },
   guestTitle: { color: colors.white, fontSize: 26, fontWeight: '800', marginTop: spacing.md, lineHeight: 32, letterSpacing: -0.3 },
-  perks: { backgroundColor: colors.white, margin: spacing.md, borderRadius: radius.md, padding: spacing.md, gap: spacing.md },
+  perks: { backgroundColor: colors.surface, margin: spacing.md, borderRadius: radius.md, padding: spacing.md, gap: spacing.md },
   perk: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   perkIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   perkTitle: { fontWeight: '800', fontSize: 15 },
@@ -232,7 +265,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderBottomColor: colors.accent,
   },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: colors.accent, fontWeight: '900', fontSize: 22 },
   name: { color: colors.white, fontSize: 24, fontWeight: '900', letterSpacing: -0.3 },
   sub: { color: '#A1A1AA', marginTop: 2 },
@@ -255,8 +288,8 @@ const styles = StyleSheet.create({
   sellTitle: { color: colors.white, fontWeight: '900', fontSize: 16 },
   sellSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
   sellLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: spacing.md },
-  sellLinkText: { color: colors.navy, fontWeight: '700', fontSize: 13 },
-  menu: { backgroundColor: colors.white, borderRadius: radius.md, marginHorizontal: spacing.md, marginTop: spacing.md, paddingHorizontal: spacing.md },
+  sellLinkText: { color: colors.link, fontWeight: '700', fontSize: 13 },
+  menu: { backgroundColor: colors.surface, borderRadius: radius.md, marginHorizontal: spacing.md, marginTop: spacing.md, paddingHorizontal: spacing.md },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15 },
   menuBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   menuLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
@@ -266,4 +299,4 @@ const styles = StyleSheet.create({
   logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.lg, padding: spacing.md },
   logoutText: { color: colors.accent, fontWeight: '800', fontSize: 16 },
   email: { textAlign: 'center', color: colors.textFaint, fontSize: 12 },
-});
+}));

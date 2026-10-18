@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, themed } from '../theme/theme';
 import { Header } from '../components/Header';
 import { Button } from '../components/Button';
 import { TextField } from '../components/TextField';
 import { DistrictSelect } from '../components/DistrictSelect';
 import { useAuthStore } from '../store/authStore';
-import { toast } from '../store/toastStore';
 import { errorMessage } from '../utils/useRequireAccount';
 import { isValidSlPhone, normalizePhone } from '../utils/phone';
+import { openPrivacy, openTerms } from '../components/TermsGate';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
@@ -39,6 +40,7 @@ export function SignupScreen({ route, navigation }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const pwScore = strength(password);
 
   const onCreate = async () => {
@@ -50,13 +52,15 @@ export function SignupScreen({ route, navigation }: Props) {
     if (addressLine1.trim().length < 3) e.addressLine1 = 'Enter your house number and street.';
     if (city.trim().length < 2) e.city = 'Enter your city.';
     if (!district) e.district = 'Choose your district.';
+    if (!agreed) e.terms = 'Please accept the Terms of Use and Privacy Policy.';
     setErrors(e);
     setServerError(null);
     if (Object.keys(e).length) return;
 
     setLoading(true);
     try {
-      await register({
+      const { email: sentTo } = await register({
+        acceptTerms: true,
         fullName: fullName.trim(),
         email: email.trim().toLowerCase(),
         phone: normalizePhone(phone),
@@ -67,13 +71,8 @@ export function SignupScreen({ route, navigation }: Props) {
         city: city.trim(),
         district,
       });
-      if (isSeller) {
-        // The app switches to the seller application screens by itself.
-        toast.success('Account created — now tell us about your business');
-      } else {
-        toast.success('Account created');
-        navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
-      }
+      // Next: confirm the email with the 6-digit code we just sent.
+      navigation.replace('VerifyEmail', { email: sentTo, sent: true });
     } catch (err) {
       setServerError(errorMessage(err));
     } finally {
@@ -82,7 +81,7 @@ export function SignupScreen({ route, navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.surface }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Header title="Create your account" subtitle="Save your cars, track orders and ask sellers questions." back />
       <ScrollView contentContainerStyle={{ padding: spacing.lg }} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>I want to</Text>
@@ -92,7 +91,7 @@ export function SignupScreen({ route, navigation }: Props) {
         </View>
         {isSeller ? (
           <View style={styles.note}>
-            <Ionicons name="shield-checkmark-outline" size={18} color={colors.navy} />
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.link} />
             <Text style={styles.noteText}>
               Seller accounts are verified. After sign-up you’ll add your NIC, Business Registration (BR) certificate, shop location and a selfie at your shop, and our team will approve your store.
             </Text>
@@ -127,6 +126,15 @@ export function SignupScreen({ route, navigation }: Props) {
           </View>
         </View>
 
+        <TouchableOpacity style={styles.agree} onPress={() => setAgreed((a) => !a)} activeOpacity={0.8}>
+          <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={22} color={agreed ? colors.accent : errors.terms ? colors.accent : colors.textMuted} />
+          <Text style={styles.agreeText}>
+            I agree to the <Text style={styles.agreeLink} onPress={openTerms}>Terms of Use</Text> and{' '}
+            <Text style={styles.agreeLink} onPress={openPrivacy}>Privacy Policy</Text>, including the rules for chats, listings and reviews.
+          </Text>
+        </TouchableOpacity>
+        {errors.terms ? <Text style={styles.termsErr}>{errors.terms}</Text> : null}
+
         {serverError ? (
           <View style={styles.errorBox}>
             <Ionicons name="alert-circle-outline" size={18} color={colors.accent} />
@@ -156,7 +164,7 @@ function Choice({ icon, title, sub, active, onPress }: { icon: keyof typeof Ioni
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   label: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
   section: { fontSize: 12, fontWeight: '900', color: colors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: spacing.sm, marginTop: spacing.xs },
   segment: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
@@ -165,10 +173,14 @@ const styles = StyleSheet.create({
   choiceText: { fontWeight: '800', color: colors.textMuted },
   choiceSub: { fontSize: 11, color: colors.textFaint },
   note: { flexDirection: 'row', gap: 10, backgroundColor: colors.navySoft, borderRadius: radius.sm, padding: 12, marginBottom: spacing.md },
-  noteText: { flex: 1, color: colors.navyDark, fontSize: 13, lineHeight: 18 },
+  noteText: { flex: 1, color: colors.link, fontSize: 13, lineHeight: 18 },
   meter: { flexDirection: 'row', gap: 6 },
   meterBar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.divider },
   meterText: { color: colors.textMuted, fontSize: 12, marginTop: 6 },
+  agree: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: spacing.sm, marginTop: spacing.xs },
+  agreeText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
+  agreeLink: { color: colors.link, fontWeight: '800', textDecorationLine: 'underline' },
+  termsErr: { color: colors.accent, fontSize: 12, marginBottom: spacing.md },
   errorBox: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colors.accentSoft, borderRadius: radius.sm, padding: 12, marginBottom: spacing.md },
   errorText: { color: colors.accentDark, fontWeight: '600', flex: 1 },
-});
+}));

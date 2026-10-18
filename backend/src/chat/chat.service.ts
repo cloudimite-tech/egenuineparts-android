@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, count, desc, eq, gt, inArray, ne, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
-import { conversations, messages, productImages, products, stores } from '../db/schema';
+import { conversations, messages, productImages, products, serviceImages, services, stores, userBlocks } from '../db/schema';
 import { checkForContactInfo, checkSplitNumber } from '../common/contact-filter';
 import { stripValidShareLinks } from '../common/share-links';
 import { shortName } from '../products/products.service';
@@ -12,6 +12,10 @@ const threadWith = {
   product: {
     columns: { id: true, title: true, brand: true, price: true, currency: true, salePrice: true, saleEndsAt: true, partNumber: true, isActive: true },
     with: { images: { orderBy: asc(productImages.position), limit: 1 } },
+  },
+  service: {
+    columns: { id: true, title: true, priceFrom: true, priceTo: true, isActive: true },
+    with: { images: { orderBy: asc(serviceImages.position), limit: 1 }, type: { columns: { name: true, icon: true } } },
   },
   buyer: { columns: { id: true, fullName: true } },
   store: { columns: { id: true, name: true, slug: true, verified: true, ownerId: true } },
@@ -30,7 +34,10 @@ export class ChatService {
     const { ownerId, ...store } = c.store;
     return {
       ...c,
-      product: { ...c.product, price: effectivePrice(c.product) },
+      product: c.product ? { ...c.product, price: effectivePrice(c.product) } : null,
+      service: c.service
+        ? { ...c.service, priceFrom: c.service.priceFrom != null ? Number(c.service.priceFrom) : null, priceTo: c.service.priceTo != null ? Number(c.service.priceTo) : null }
+        : null,
       store,
       buyer: { id: c.buyer.id, fullName: shortName(c.buyer.fullName) },
       viewerIsSeller,
@@ -47,6 +54,9 @@ export class ChatService {
     if (product.store.ownerId === buyerId) {
       throw new ForbiddenException('This is your own listing.');
     }
+    if (await this.eitherBlocked(buyerId, product.store.ownerId)) {
+      throw new ForbiddenException('You can’t message this seller.');
+    }
     const existing = await db.query.conversations.findFirst({
       where: and(
         eq(conversations.productId, productId),
@@ -57,6 +67,18 @@ export class ChatService {
     const id =
       existing?.id ??
       (await db.insert(conversations).values({ productId, buyerId, storeId: product.storeId }).returning())[0].id;
+    return this.get(buyerId, id);
+  }
+
+  async startOrGetServiceConversation(buyerId: string, serviceId: string) {
+    const service = await db.query.services.findFirst({ where: eq(services.id, serviceId), with: { store: true } });
+    if (!service || !service.isActive || service.store.status !== 'APPROVED') throw new NotFoundException('Service not found.');
+    if (service.store.ownerId === buyerId) throw new ForbiddenException('This is your own service.');
+    if (await this.eitherBlocked(buyerId, service.store.ownerId)) throw new ForbiddenException('You can’t message this seller.');
+    const existing = await db.query.conversations.findFirst({
+      where: and(eq(conversations.serviceId, serviceId), eq(conversations.buyerId, buyerId), eq(conversations.storeId, service.storeId)),
+    });
+    const id = existing?.id ?? (await db.insert(conversations).values({ serviceId, buyerId, storeId: service.storeId }).returning())[0].id;
     return this.get(buyerId, id);
   }
 
@@ -73,9 +95,29 @@ export class ChatService {
   }
 
   async get(userId: string, conversationId: string) {
-    await this.assertParticipant(userId, conversationId);
+    const p = await this.assertParticipant(userId, conversationId);
     const thread = await this.loadThread(conversationId);
-    return this.present(thread!, userId);
+    const other = p.isBuyer ? p.sellerId : p.buyerId;
+    const [iBlocked, blockedMe] = await Promise.all([this.blocked(userId, other), this.blocked(other, userId)]);
+    return { ...this.present(thread!, userId), iBlocked, canReply: !iBlocked && !blockedMe };
+  }
+
+  // ---- blocking (Google Play UGC rule) ----
+  private async blocked(blockerId: string, blockedId: string) {
+    return !!(await db.query.userBlocks.findFirst({ where: and(eq(userBlocks.blockerId, blockerId), eq(userBlocks.blockedId, blockedId)) }));
+  }
+
+  private async eitherBlocked(a: string, b: string) {
+    return (await this.blocked(a, b)) || (await this.blocked(b, a));
+  }
+
+  /** Block (or unblock) the other person in this conversation. */
+  async setBlock(userId: string, conversationId: string, block: boolean) {
+    const p = await this.assertParticipant(userId, conversationId);
+    const other = p.isBuyer ? p.sellerId : p.buyerId;
+    if (block) await db.insert(userBlocks).values({ blockerId: userId, blockedId: other }).onConflictDoNothing();
+    else await db.delete(userBlocks).where(and(eq(userBlocks.blockerId, userId), eq(userBlocks.blockedId, other)));
+    return this.get(userId, conversationId);
   }
 
   private async myStoreId(userId: string) {
@@ -92,8 +134,13 @@ export class ChatService {
       with: threadWith,
     });
 
+    const myBlocks = new Set(
+      (await db.select({ id: userBlocks.blockedId }).from(userBlocks).where(eq(userBlocks.blockerId, userId))).map((r) => r.id),
+    );
+    const visible = threads.filter((c) => !myBlocks.has(c.store.ownerId === userId ? c.buyerId : c.store.ownerId));
+
     const result = await Promise.all(
-      threads.map(async (c) => {
+      visible.map(async (c) => {
         const viewerIsSeller = c.store.ownerId === userId;
         const lastRead = viewerIsSeller ? c.sellerLastReadAt : c.buyerLastReadAt;
         const [last, [unread]] = await Promise.all([
@@ -156,9 +203,12 @@ export class ChatService {
   async postMessage(userId: string, conversationId: string, rawBody: string) {
     const participant = await this.assertParticipant(userId, conversationId);
     const body = (rawBody ?? '').trim().slice(0, 2000);
+    if (await this.eitherBlocked(participant.buyerId, participant.sellerId)) {
+      return { blocked: true as const, reason: 'You can’t send messages in this conversation.' };
+    }
     if (!body) return { blocked: true as const, reason: 'Message is empty.' };
 
-    // Genuine Parts.lk product/store links are allowed; everything else in
+    // AutoGuide product/store links are allowed; everything else in
     // the message still has to pass the contact-info filter.
     const { text: rest } = await stripValidShareLinks(body);
     const filterResult = checkForContactInfo(rest);

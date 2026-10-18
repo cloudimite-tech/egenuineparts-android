@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
@@ -18,10 +17,13 @@ import { SellerApplicationModule } from './seller-application/seller-application
 import { AdminModule } from './admin/admin.module';
 import { ShareModule } from './share/share.module';
 import { GeoModule } from './geo/geo.module';
+import { MailModule } from './mail/mail.module';
+import { ReportsModule } from './reports/reports.module';
+import { WebModule } from './web/web.module';
+import { ServicesModule } from './services/services.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
     UsersModule,
     VehiclesModule,
@@ -40,6 +42,10 @@ import { GeoModule } from './geo/geo.module';
     AdminModule,
     ShareModule,
     GeoModule,
+    MailModule,
+    ReportsModule,
+    WebModule,
+    ServicesModule,
   ],
 })
 export class AppModule {}

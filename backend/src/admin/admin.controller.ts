@@ -9,6 +9,19 @@ class ListQuery {
   @IsOptional() @IsIn(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'])
   status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 }
+class ReportListQuery {
+  @IsOptional() @IsIn(['OPEN', 'RESOLVED', 'DISMISSED']) status?: 'OPEN' | 'RESOLVED' | 'DISMISSED';
+}
+class ResolveDto {
+  @IsIn(['dismiss', 'remove_content', 'suspend_store', 'ban_user']) action: 'dismiss' | 'remove_content' | 'suspend_store' | 'ban_user';
+  @IsOptional() @IsString() @MaxLength(1000) note?: string;
+}
+class UserQuery {
+  @IsOptional() @IsString() @MaxLength(100) q?: string;
+}
+class BanDto {
+  @IsString() @MaxLength(500) reason: string;
+}
 class ReviewDto {
   @IsOptional() @IsString() @MaxLength(1000) note?: string;
 }
@@ -47,7 +60,43 @@ export class AdminController {
     return this.admin.review(id, user.sub, 'reject', dto.note);
   }
 
-  // Opened from the app via a short-lived signed link (see getSeller).
+  @Get('reports')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  reports(@Query() q: ReportListQuery) {
+    return this.admin.listReports(q.status ?? 'OPEN');
+  }
+
+  @Post('reports/:id/resolve')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  resolve(@Param('id') id: string, @CurrentUser() user: JwtUser, @Body() dto: ResolveDto) {
+    return this.admin.resolveReport(id, user.sub, dto.action, dto.note);
+  }
+
+  @Get('users')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  users(@Query() q: UserQuery) {
+    return this.admin.listUsers(q.q);
+  }
+
+  @Post('users/:id/ban')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  ban(@Param('id') id: string, @CurrentUser() user: JwtUser, @Body() dto: BanDto) {
+    return this.admin.banUser(id, user.sub, dto.reason);
+  }
+
+  @Post('users/:id/unban')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  unban(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return this.admin.unbanUser(id, user.sub);
+  }
+
+  @Get('audit')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  auditLog() {
+    return this.admin.auditLog();
+  }
+
+  // Opened from the admin panel via a short-lived signed link (see getSeller).
   @Get('documents/:id')
   async document(@Param('id') id: string, @Query('t') t: string, @Res() res: any) {
     const doc = await this.admin.document(id, t);

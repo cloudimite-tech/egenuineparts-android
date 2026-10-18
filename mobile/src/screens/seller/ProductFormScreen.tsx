@@ -1,23 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../../navigation/types';
-import { colors, radius, spacing } from '../../theme/theme';
+import { colors, radius, spacing, themed } from '../../theme/theme';
 import { apiClient } from '../../api/client';
 import { API_BASE_URL, resolveImageUrl } from '../../api/config';
 import { getAuthToken } from '../../api/authToken';
@@ -531,8 +520,8 @@ function Card({ title, hint, children }: { title: string; hint?: string; childre
 
 const cap = (s: string) => s.trim().replace(/\b\w/g, (c) => c.toUpperCase());
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
+const styles = themed(() => StyleSheet.create({
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm + 4 },
   cardTitle: { fontSize: 17, fontWeight: '800' },
   cardHint: { color: colors.textMuted, fontSize: 12, marginTop: 3, lineHeight: 17 },
   photo: { width: 96, height: 96, borderRadius: radius.sm, backgroundColor: colors.bg },
@@ -582,16 +571,16 @@ const styles = StyleSheet.create({
   switchLabel: { fontSize: 15, fontWeight: '700' },
   durationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
   duration: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
-  durationOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  durationOn: { backgroundColor: colors.navy, borderColor: colors.link },
   durationText: { fontWeight: '700', color: colors.text, fontSize: 13 },
   durationTextOn: { color: colors.white },
-  salePreview: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: '#FFF1EA', borderRadius: radius.sm, padding: 12 },
-  salePreviewText: { flex: 1, color: '#9A3412', fontWeight: '700', fontSize: 13 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingTop: spacing.sm + 2, borderTopWidth: 1, borderTopColor: colors.border },
+  salePreview: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colors.warningSoft, borderRadius: radius.sm, padding: 12 },
+  salePreviewText: { flex: 1, color: colors.warning, fontWeight: '700', fontSize: 13 },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingTop: spacing.sm + 2, borderTopWidth: 1, borderTopColor: colors.border },
   catHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.sm },
   catHeadText: { fontWeight: '800', fontSize: 15 },
   catChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   catChip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   catChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
   catChipText: { fontWeight: '600', color: colors.text },
-});
+}));

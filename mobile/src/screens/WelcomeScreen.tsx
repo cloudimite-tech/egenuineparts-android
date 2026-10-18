@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, HEADER_TOP, radius, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, radius, spacing, themed } from '../theme/theme';
 import { Button } from '../components/Button';
 import { Logo } from '../components/Logo';
 import { TextField } from '../components/TextField';
@@ -33,7 +34,11 @@ export function WelcomeScreen({ navigation }: Props) {
       await login(email.trim().toLowerCase(), password);
       toast.success('Welcome back!');
       close();
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.code === 'EMAIL_NOT_VERIFIED') {
+        navigation.navigate('VerifyEmail', { email: e.data?.email ?? email.trim().toLowerCase(), sent: true });
+        return;
+      }
       setError(errorMessage(e));
     } finally {
       setLoading(false);
@@ -57,7 +62,7 @@ export function WelcomeScreen({ navigation }: Props) {
                 <View key={i} style={[styles.speedLine, { width: w }]} />
               ))}
             </View>
-            <Ionicons name="car-sport" size={110} color="#4A49A8" />
+            <Ionicons name="car-sport" size={110} color="#4A4546" />
           </View>
           <View style={styles.badges}>
             {['Verified sellers', 'Fitment checked', 'Island-wide delivery'].map((b) => (
@@ -73,6 +78,9 @@ export function WelcomeScreen({ navigation }: Props) {
           <Text style={styles.subtitle}>Sign in to buy, chat with sellers and track orders.</Text>
           <TextField label="Email" icon="mail-outline" placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" autoComplete="email" value={email} onChangeText={setEmail} />
           <TextField label="Password" icon="lock-closed-outline" placeholder="Your password" secureTextEntry value={password} onChangeText={setPassword} onSubmitEditing={onSignIn} />
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword', { email: email.trim() || undefined })} style={{ alignSelf: 'flex-end', marginTop: -6, marginBottom: spacing.md }}>
+            <Text style={{ color: colors.link, fontWeight: '700', fontSize: 13 }}>Forgot password?</Text>
+          </TouchableOpacity>
           {error ? (
             <View style={styles.errorBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.accent} />
@@ -82,7 +90,7 @@ export function WelcomeScreen({ navigation }: Props) {
           <Button title="Sign in" onPress={onSignIn} loading={loading} />
           <TouchableOpacity style={styles.footer} onPress={() => navigation.replace('Signup')}>
             <Text style={styles.footerText}>
-              New to Genuine Parts.lk? <Text style={styles.footerLink}>Create an account</Text>
+              New to AutoGuide? <Text style={styles.footerLink}>Create an account</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -91,7 +99,7 @@ export function WelcomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   hero: { paddingTop: HEADER_TOP + 8, paddingHorizontal: spacing.md, paddingBottom: spacing.lg },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logo: { fontSize: 24, fontWeight: '900', fontStyle: 'italic', letterSpacing: -0.5 },
@@ -114,7 +122,7 @@ const styles = StyleSheet.create({
   badgeText: { color: '#D4D4D8', fontSize: 12, fontWeight: '600' },
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: spacing.lg,
@@ -128,4 +136,4 @@ const styles = StyleSheet.create({
   footer: { alignItems: 'center', marginTop: spacing.lg },
   footerText: { color: colors.textMuted },
   footerLink: { color: colors.accent, fontWeight: '800' },
-});
+}));

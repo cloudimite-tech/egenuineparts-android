@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, StyleSheet, useWindowDimensions, View } fr
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, spacing } from '../theme/theme';
+import { colors, spacing, themed } from '../theme/theme';
 import { apiClient } from '../api/client';
 import { Product } from '../types';
 import { Header } from '../components/Header';
@@ -68,6 +68,6 @@ export function WishlistScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   list: { padding: spacing.md, flexGrow: 1 },
-});
+}));

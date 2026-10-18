@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, HEADER_TOP, spacing } from '../theme/theme';
+import { colors, HEADER_TOP, spacing, themed } from '../theme/theme';
 import { GradientHeader } from './GradientHeader';
 
 interface Props {
@@ -61,7 +62,7 @@ export function HeaderIconButton({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: {
     backgroundColor: colors.headerBg,
     paddingTop: HEADER_TOP,
@@ -91,4 +92,4 @@ const styles = StyleSheet.create({
     borderColor: colors.headerBg,
   },
   badgeText: { color: colors.white, fontSize: 10, fontWeight: '800' },
-});
+}));
