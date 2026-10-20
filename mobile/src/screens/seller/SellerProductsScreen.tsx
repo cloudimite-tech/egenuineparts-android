@@ -71,7 +71,7 @@ export function SellerProductsScreen({ navigation }: Props) {
             <EmptyState
               icon="pricetag-outline"
               title="No listings yet"
-              message="List your first part — it takes about a minute."
+              message="List your first part - it takes about a minute."
               actionLabel="List a part"
               onAction={() => navigation.navigate('ProductForm')}
             />

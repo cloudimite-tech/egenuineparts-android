@@ -1,6 +1,7 @@
 import { ServiceCard } from '../components/ServiceCard';
 import { ServiceListing } from '../types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { ReportSheet, ReportTarget, reportStyles } from '../components/ReportSheet';
 import { shareStore } from '../utils/share';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -51,7 +52,7 @@ export function StoreProfileScreen({ route, navigation }: Props) {
     );
   }, [store, search]);
 
-  if (failed) return <EmptyState icon="storefront-outline" title="Store not found" actionLabel="Go back" onAction={() => navigation.goBack()} />;
+  if (failed) return <EmptyState icon="storefront-outline" title="Store not found" actionLabel="Go back" onAction={() => goBackOr(navigation)} />;
   if (!store) return <ActivityIndicator color={colors.accent} style={{ flex: 1 }} />;
 
   const save = (id: string) =>
@@ -67,7 +68,7 @@ export function StoreProfileScreen({ route, navigation }: Props) {
   const header = (
     <View>
       <View style={styles.cover}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back} hitSlop={10}>
+        <TouchableOpacity onPress={() => goBackOr(navigation)} style={styles.back} hitSlop={10}>
           <Ionicons name="chevron-back" size={26} color={colors.white} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => shareStore(store)} style={[styles.back, { left: undefined, right: spacing.md }]} hitSlop={10} accessibilityLabel="Share store">
@@ -84,7 +85,7 @@ export function StoreProfileScreen({ route, navigation }: Props) {
         </View>
         {store.bio ? <Text style={styles.bio}>{store.bio}</Text> : null}
         <View style={styles.stats}>
-          <Stat value={store.stats?.avgRating ? `★ ${store.stats.avgRating}` : '—'} label={`${store.stats?.reviewCount ?? 0} ratings`} />
+          <Stat value={store.stats?.avgRating ? `★ ${store.stats.avgRating}` : '-'} label={`${store.stats?.reviewCount ?? 0} ratings`} />
           <Stat value={String(store.stats?.totalSold ?? 0)} label="sold" />
           <Stat value={String(store.stats?.productCount ?? 0)} label="parts" />
         </View>

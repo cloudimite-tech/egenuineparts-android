@@ -10,7 +10,7 @@ function findJdk17() {
   try {
     return execSync('/usr/libexec/java_home -v 17', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
   } catch {
-    return null; // not on macOS or JDK 17 not installed — leave Gradle's default
+    return null; // not on macOS or JDK 17 not installed - leave Gradle's default
   }
 }
 

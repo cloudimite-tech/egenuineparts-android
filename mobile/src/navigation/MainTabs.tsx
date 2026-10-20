@@ -43,7 +43,7 @@ export function MainTabs() {
       <Tab.Screen name="Products" component={CategoriesScreen} />
       <Tab.Screen name="Services" component={ServicesScreen} />
       <Tab.Screen name="Cart" component={CartScreen} options={{ tabBarBadge: cartCount > 0 ? cartCount : undefined }} />
-      {/* Messages live under Account — the unread count shows on its tab. */}
+      {/* Messages live under Account - the unread count shows on its tab. */}
       <Tab.Screen name="Account" component={AccountScreen} options={{ tabBarBadge: unread > 0 ? unread : undefined }} />
     </Tab.Navigator>
   );

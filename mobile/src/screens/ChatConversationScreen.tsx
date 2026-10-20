@@ -1,10 +1,11 @@
 import { serviceIcon } from '../utils/services';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { findShareLinks } from '../utils/share';
 import { ReportSheet, ReportTarget } from '../components/ReportSheet';
 import { toast } from '../store/toastStore';
 import { useNoScreenshots } from '../utils/useNoScreenshots';
-import { Alert, Pressable, ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, AppState, Pressable, ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,6 +16,7 @@ import { apiClient } from '../api/client';
 import { connectChatSocket } from '../api/socket';
 import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
+import { useConfigStore } from '../store/configStore';
 import { Conversation, Message } from '../types';
 import { ProductImage } from '../components/ProductImage';
 import { clockTime, dayLabel, formatPrice } from '../utils/format';
@@ -24,13 +26,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ChatConversation'>;
 type Row = { type: 'day'; key: string; label: string } | { type: 'msg'; key: string; msg: Message };
 
 const QUICK_BUYER = ['Is this in stock?', 'Will it fit my vehicle?', 'Is it genuine?', 'Any warranty?'];
-const QUICK_SELLER = ['Yes, in stock.', 'Please share your chassis code.', 'It fits — confirmed.'];
+const QUICK_SELLER = ['Yes, in stock.', 'Please share your chassis code.', 'It fits - confirmed.'];
 
 export function ChatConversationScreen({ route, navigation }: Props) {
   useNoScreenshots('chat');
   const { conversationId } = route.params;
   const insets = useSafeAreaInsets();
   const { user, token } = useAuthStore();
+  const realtime = useConfigStore((s) => s.realtime);
   const [thread, setThread] = useState<Conversation | null>(null);
   const [report, setReport] = useState<ReportTarget | null>(null);
   const [messages, setMessages] = useState<Message[] | null>(null);
@@ -49,8 +52,38 @@ export function ChatConversationScreen({ route, navigation }: Props) {
       .catch(() => setMessages([]));
   }, [conversationId]);
 
+  // Without a live socket (Vercel), fetch new messages every 5 s while this chat
+  // is open and the app is in the foreground. Only new messages are merged in.
   useEffect(() => {
-    if (!token) return;
+    if (!token || realtime) return;
+    let alive = true;
+    const poll = () => {
+      if (AppState.currentState !== 'active') return;
+      apiClient
+        .get<Message[]>(`/chat/conversations/${conversationId}/messages`)
+        .then((r) => {
+          if (!alive) return;
+          setMessages((prev) => {
+            const list = prev ?? [];
+            const known = new Set(list.map((m) => m.id));
+            const fresh = r.data.filter((m) => !known.has(m.id));
+            if (!fresh.length) return prev;
+            if (fresh.some((m) => m.senderId !== user?.id)) apiClient.post(`/chat/conversations/${conversationId}/read`).catch(() => {});
+            return [...list, ...fresh];
+          });
+        })
+        .catch(() => {});
+    };
+    const timer = setInterval(poll, 5000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      useChatStore.getState().refreshUnread().catch(() => {});
+    };
+  }, [conversationId, token, realtime, user?.id]);
+
+  useEffect(() => {
+    if (!token || !realtime) return;
     const socket = connectChatSocket(token);
     const join = () => socket.emit('join_conversation', { conversationId });
     join();
@@ -85,7 +118,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
       socket.off('message_blocked', onBlocked);
       useChatStore.getState().refreshUnread().catch(() => {});
     };
-  }, [conversationId, token, user?.id]);
+  }, [conversationId, token, realtime, user?.id]);
 
   const send = useCallback(
     (text?: string) => {
@@ -104,9 +137,32 @@ export function ChatConversationScreen({ route, navigation }: Props) {
       setMessages((prev) => [...(prev ?? []), optimistic]);
       setDraft('');
       setNotice(null);
-      connectChatSocket(token).emit('send_message', { conversationId, body, clientId });
+      if (realtime) {
+        connectChatSocket(token).emit('send_message', { conversationId, body, clientId });
+        return;
+      }
+      apiClient
+        .post<{ blocked: boolean; message?: Message; reason?: string }>(`/chat/conversations/${conversationId}/messages`, { body })
+        .then(({ data }) => {
+          if (data.blocked || !data.message) {
+            const reason = data.reason ?? 'Message not sent.';
+            setMessages((prev) => (prev ?? []).map((m) => (m.clientId === clientId ? { ...m, pending: false, blockedReason: reason } : m)));
+            setNotice(reason);
+            return;
+          }
+          const sent = data.message;
+          setMessages((prev) => {
+            const list = (prev ?? []).filter((m) => m.id !== sent.id || m.clientId === clientId);
+            return list.map((m) => (m.clientId === clientId ? { ...sent, clientId, pending: false } : m));
+          });
+        })
+        .catch((e: any) => {
+          const reason = e?.message ?? 'Message not sent. Check your connection.';
+          setMessages((prev) => (prev ?? []).map((m) => (m.clientId === clientId ? { ...m, pending: false, blockedReason: reason } : m)));
+          setNotice(reason);
+        });
     },
-    [draft, token, conversationId, user?.id],
+    [draft, token, conversationId, user?.id, realtime],
   );
 
   const rows = useMemo<Row[]>(() => {
@@ -134,7 +190,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
         : await apiClient.delete<Conversation>(`/chat/conversations/${conversationId}/block`);
       setThread(data);
       toast.success(block ? `${thread?.otherPartyName ?? 'User'} blocked` : 'Unblocked');
-      if (block) navigation.goBack();
+      if (block) goBackOr(navigation);
     } catch (e: any) {
       toast.error(e?.message ?? 'Something went wrong.');
     }
@@ -144,7 +200,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
     if (!thread) return;
     const name = thread.otherPartyName ?? 'this user';
     Alert.alert(name, undefined, [
-      { text: 'Report conversation', onPress: () => setReport({ type: 'CONVERSATION', id: conversationId, label: 'conversation' }) },
+      { text: `Report ${name}`, onPress: () => setReport({ type: 'CONVERSATION', id: conversationId, label: thread.viewerIsSeller ? 'buyer' : 'seller' }) },
       thread.iBlocked
         ? { text: `Unblock ${name}`, onPress: () => setBlocked(false) }
         : {
@@ -163,7 +219,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10}>
+        <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={10}>
           <Ionicons name="chevron-back" size={26} color={colors.white} />
         </TouchableOpacity>
         <View style={styles.headAvatar}>
@@ -311,7 +367,7 @@ export function ChatConversationScreen({ route, navigation }: Props) {
                     {blocked ? (
                       <>
                         <Ionicons name="alert-circle-outline" size={13} color={colors.accent} />
-                        <Text style={[styles.meta, { color: colors.accent, fontWeight: '700' }]}>Not sent — contact details aren’t allowed</Text>
+                        <Text style={[styles.meta, { color: colors.accent, fontWeight: '700' }]}>Not sent - contact details aren’t allowed</Text>
                       </>
                     ) : (
                       <>

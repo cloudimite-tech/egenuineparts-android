@@ -12,12 +12,14 @@ import { ensureFreshRate } from './products/pricing';
 
 async function bootstrap() {
   // No CORS: the mobile app isn't a browser, and the admin panel is served
-  // from this same origin — so other websites can't call the API from a browser.
+  // from this same origin - so other websites can't call the API from a browser.
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.set('trust proxy', true);
   // Standard security headers. Page-specific Content-Security-Policy is set
   // by the share pages, legal pages and admin panel themselves.
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' }, crossOriginEmbedderPolicy: false }));
+  // Referrer: OpenStreetMap blocks map tiles requested without one (helmet's
+  // default is no-referrer), so send just our origin to other sites.
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' }, crossOriginEmbedderPolicy: false, referrerPolicy: { policy: 'strict-origin-when-cross-origin' } }));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.setGlobalPrefix('api', {
     // Public share pages + Android App Links file live at the site root.

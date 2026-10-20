@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { leaveAuth } from '../navigation/leaveAuth';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Text } from '../components/Themed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -46,7 +47,7 @@ export function ForgotPasswordScreen({ route, navigation }: Props) {
       await resetPassword(e, code, password);
       await login(e, password).catch(() => {});
       toast.success('Password changed');
-      navigation.canGoBack() ? navigation.popToTop() : navigation.navigate('Main');
+      leaveAuth(navigation, 'top');
     } catch (err) {
       setError(errorMessage(err));
     } finally {

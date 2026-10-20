@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { goBackOr } from '../../navigation/goBackOr';
 import { Alert, AppState, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +25,7 @@ const COPY: Record<Exclude<SellerStatus, 'APPROVED'>, { icon: keyof typeof Ionic
   PENDING: {
     icon: 'time-outline', tone: colors.warning, bg: colors.warningSoft,
     title: 'Your application is under review',
-    text: 'Our team is checking your business details. This usually takes 1–2 working days — this screen updates by itself once you’re approved.',
+    text: 'Our team is checking your business details. This usually takes 1-2 working days - this screen updates by itself once you’re approved.',
   },
   REJECTED: {
     icon: 'alert-circle-outline', tone: colors.accent, bg: colors.accentSoft,
@@ -34,7 +35,7 @@ const COPY: Record<Exclude<SellerStatus, 'APPROVED'>, { icon: keyof typeof Ionic
   SUSPENDED: {
     icon: 'ban-outline', tone: colors.accent, bg: colors.accentSoft,
     title: 'Your store is suspended',
-    text: 'Your listings are hidden from buyers. Contact support@autoguide.lk to resolve this.',
+    text: 'Your listings are hidden from buyers. Contact support@monolythcode.com to resolve this.',
   },
 }));
 
@@ -130,7 +131,7 @@ export function SellerGateScreen({ navigation }: Props) {
           <Row label="BR number" value={app.application.brNumber} />
           <Row label="NIC" value={app.application.nicNumber ? `••••${app.application.nicNumber.slice(-4)}` : null} />
           <Row label="Location" value={[app.application.city, app.application.district].filter(Boolean).join(', ')} />
-          <Row label="Documents" value={[app.application.document && 'BR', app.application.nicFront && 'NIC', app.application.selfie && 'Selfie'].filter(Boolean).join(' · ') || '—'} />
+          <Row label="Documents" value={[app.application.document && 'BR', app.application.nicFront && 'NIC', app.application.selfie && 'Selfie'].filter(Boolean).join(' · ') || '-'} />
           <Row label="Map pin" value={app.application.latitude != null ? 'Set' : 'Missing'} last />
         </View>
       ) : null}
@@ -140,7 +141,7 @@ export function SellerGateScreen({ navigation }: Props) {
         {status === 'REJECTED' ? <Button title="Update & resubmit" icon="create-outline" onPress={() => navigation.navigate('SellerApplication')} /> : null}
         {status === 'PENDING' ? <Button title="Edit application" variant="outline" icon="create-outline" onPress={() => navigation.navigate('SellerApplication')} /> : null}
         {isBuyer ? (
-          <Button title="Back to shopping" variant="ghost" icon="arrow-back" onPress={() => navigation.goBack()} />
+          <Button title="Back to shopping" variant="ghost" icon="arrow-back" onPress={() => goBackOr(navigation)} />
         ) : (
           <Button title="Sign out" variant="ghost" icon="log-out-outline" onPress={confirmLogout} />
         )}
@@ -153,7 +154,7 @@ function Row({ label, value, last }: { label: string; value?: string | null; las
   return (
     <View style={[styles.row, !last && styles.rowBorder]}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue} numberOfLines={1}>{value || '—'}</Text>
+      <Text style={styles.rowValue} numberOfLines={1}>{value || '-'}</Text>
     </View>
   );
 }

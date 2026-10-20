@@ -4,12 +4,12 @@
 module.exports = ({ config }) => {
   const api = process.env.EXPO_PUBLIC_API_URL;
   const host = api && /^https:\/\//.test(api) ? new URL(api).host : null;
-  const hosts = [host, 'autoguide.lk', 'www.autoguide.lk'].filter(Boolean);
+  const hosts = [host].filter(Boolean);
   return {
     ...config,
     android: {
       ...config.android,
-      intentFilters: [
+      intentFilters: hosts.length ? [
         {
           action: 'VIEW',
           autoVerify: true,
@@ -19,7 +19,7 @@ module.exports = ({ config }) => {
           ]),
           category: ['BROWSABLE', 'DEFAULT'],
         },
-      ],
+      ] : config.android?.intentFilters,
     },
   };
 };

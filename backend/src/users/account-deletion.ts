@@ -24,6 +24,13 @@ export async function deleteAccount(userId: string, password: string) {
   if (!(await bcrypt.compare(password ?? '', user.passwordHash))) {
     throw new UnauthorizedException({ message: 'Incorrect password.', code: 'INVALID_CREDENTIALS' });
   }
+  return eraseAccount(userId);
+}
+
+/** Same erase, started by an admin from the admin panel (no password). */
+export async function eraseAccount(userId: string, opts: { byAdmin?: boolean } = {}) {
+  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!user || user.deletedAt) throw new BadRequestException('This account has already been deleted.');
   if (user.role === 'ADMIN') throw new BadRequestException('Admin accounts can’t be deleted here.');
 
   // Unfinished orders must be completed or cancelled first.
@@ -38,7 +45,9 @@ export async function deleteAccount(userId: string, password: string) {
     : [{ n: 0 }];
   if (Number(buyerOpen.n) > 0 || Number(sellerOpen.n) > 0) {
     throw new BadRequestException({
-      message: 'You have orders that aren’t finished yet. Once they’re delivered or cancelled, you can delete your account.',
+      message: opts.byAdmin
+        ? 'This user has orders that aren’t finished yet. Once they’re delivered or cancelled the account can be deleted - ban the user meanwhile if needed.'
+        : 'You have orders that aren’t finished yet. Once they’re delivered or cancelled, you can delete your account.',
       code: 'OPEN_ORDERS',
     });
   }
@@ -56,7 +65,7 @@ export async function deleteAccount(userId: string, password: string) {
     await db
       .update(stores)
       .set({
-        status: 'SUSPENDED', verified: false, reviewNote: 'Account deleted by its owner.',
+        status: 'SUSPENDED', verified: false, reviewNote: opts.byAdmin ? 'Account deleted by AutoGuide.' : 'Account deleted by its owner.',
         nicNumber: null, nicFrontDocumentId: null, nicBackDocumentId: null, selfieDocumentId: null, brDocumentId: null,
         contactPhone: null, addressLine1: null, addressLine2: null, latitude: null, longitude: null, logoUrl: null,
       })
@@ -64,14 +73,14 @@ export async function deleteAccount(userId: string, password: string) {
   }
   await db.delete(sellerDocuments).where(eq(sellerDocuments.ownerId, userId));
   // Anonymise delivery details on the user's past orders.
-  await db.update(orders).set({ addressLine1: 'Removed', addressLine2: null, contactPhone: null }).where(eq(orders.buyerId, userId));
+  await db.update(orders).set({ addressLine1: 'Removed', addressLine2: null, postalCode: null, contactPhone: null }).where(eq(orders.buyerId, userId));
   await db
     .update(users)
     .set({
       email: `deleted-${user.id}@deleted.invalid`,
       fullName: 'Deleted user',
       phone: null,
-      addressLine1: null, addressLine2: null, city: null, district: null,
+      addressLine1: null, addressLine2: null, city: null, district: null, postalCode: null,
       passwordHash: await bcrypt.hash(randomBytes(24).toString('hex'), 10),
       deletedAt: new Date(),
       tokenVersion: sql`${users.tokenVersion} + 1`,

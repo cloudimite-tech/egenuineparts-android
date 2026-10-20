@@ -86,7 +86,7 @@ export function FilterSheet({
         <View style={{ flex: 1 }}>
           <TextField placeholder="Min" keyboardType="number-pad" value={draft.minPrice} onChangeText={(v) => setDraft((d) => ({ ...d, minPrice: v.replace(/\D/g, '') }))} />
         </View>
-        <Text style={{ marginBottom: spacing.md, color: colors.textMuted }}>—</Text>
+        <Text style={{ marginBottom: spacing.md, color: colors.textMuted }}>-</Text>
         <View style={{ flex: 1 }}>
           <TextField placeholder="Max" keyboardType="number-pad" value={draft.maxPrice} onChangeText={(v) => setDraft((d) => ({ ...d, maxPrice: v.replace(/\D/g, '') }))} />
         </View>

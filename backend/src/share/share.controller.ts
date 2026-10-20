@@ -82,7 +82,7 @@ export class ShareController {
       page({
         base,
         path: `p/${p.id}`,
-        title: `${p.title} – ${price} | AutoGuide`,
+        title: `${p.title} - ${price} | AutoGuide`,
         description: `${p.brand}${p.partNumber ? ` · ${p.partNumber}` : ''} · ${price}${usdNote} · Sold by ${p.store.name} on AutoGuide`,
         image: absolute(p.images[0]?.url, base),
         heading: p.title,

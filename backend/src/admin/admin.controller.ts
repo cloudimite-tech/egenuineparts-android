@@ -84,6 +84,12 @@ export class AdminController {
     return this.admin.banUser(id, user.sub, dto.reason);
   }
 
+  @Post('users/:id/delete')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  remove(@Param('id') id: string, @CurrentUser() user: JwtUser, @Body() dto: BanDto) {
+    return this.admin.deleteUser(id, user.sub, dto.reason);
+  }
+
   @Post('users/:id/unban')
   @UseGuards(JwtAuthGuard, AdminGuard)
   unban(@Param('id') id: string, @CurrentUser() user: JwtUser) {

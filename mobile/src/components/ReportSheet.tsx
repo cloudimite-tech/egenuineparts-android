@@ -10,7 +10,13 @@ import { Button } from './Button';
 import { toast } from '../store/toastStore';
 import { errorMessage } from '../utils/useRequireAccount';
 
-export type ReportTarget = { type: 'PRODUCT' | 'STORE' | 'MESSAGE' | 'REVIEW' | 'CONVERSATION' | 'SERVICE'; id: string; label: string };
+export type ReportTarget = {
+  type: 'PRODUCT' | 'STORE' | 'MESSAGE' | 'REVIEW' | 'CONVERSATION' | 'SERVICE' | 'USER';
+  id: string;
+  label: string;
+  // What it's about, shown to our team (e.g. "Order AG-1A2B3C").
+  context?: string;
+};
 
 const REASONS: { key: string; label: string }[] = [
   { key: 'SCAM', label: 'Scam or fraud' },
@@ -22,6 +28,32 @@ const REASONS: { key: string; label: string }[] = [
   { key: 'SPAM', label: 'Spam' },
   { key: 'OTHER', label: 'Something else' },
 ];
+
+// Reporting a buyer you've dealt with (order, appointment).
+const BUYER_REASONS: { key: string; label: string }[] = [
+  { key: 'NO_SHOW', label: 'Fake order or didn’t show up' },
+  { key: 'PAYMENT_ISSUE', label: 'Refused to pay or payment problem' },
+  { key: 'SCAM', label: 'Scam or fraud' },
+  { key: 'ABUSIVE', label: 'Abusive or harassing' },
+  { key: 'CONTACT_OUTSIDE_APP', label: 'Asking to deal outside the app' },
+  { key: 'SPAM', label: 'Spam' },
+  { key: 'OTHER', label: 'Something else' },
+];
+// Reporting a seller about a specific order or appointment.
+const SELLER_DEAL_REASONS: { key: string; label: string }[] = [
+  { key: 'NO_SHOW', label: 'Didn’t deliver or didn’t show up' },
+  { key: 'FAKE_OR_COUNTERFEIT', label: 'Fake, wrong or damaged part' },
+  { key: 'PAYMENT_ISSUE', label: 'Overcharged or payment problem' },
+  { key: 'SCAM', label: 'Scam or fraud' },
+  { key: 'ABUSIVE', label: 'Abusive or harassing' },
+  { key: 'CONTACT_OUTSIDE_APP', label: 'Asking to deal outside the app' },
+  { key: 'OTHER', label: 'Something else' },
+];
+function reasonsFor(t: ReportTarget | null) {
+  if (t?.type === 'USER') return BUYER_REASONS;
+  if (t?.type === 'STORE' && t.context) return SELLER_DEAL_REASONS;
+  return REASONS;
+}
 
 // Report a listing, store, message, review or conversation to our team.
 export function ReportSheet({ target, onClose }: { target: ReportTarget | null; onClose: () => void }) {
@@ -39,8 +71,8 @@ export function ReportSheet({ target, onClose }: { target: ReportTarget | null; 
     if (!target || !reason) return;
     setSending(true);
     try {
-      await apiClient.post('/reports', { targetType: target.type, targetId: target.id, reason, details: details.trim() || undefined });
-      toast.success('Thanks — our team will review it');
+      await apiClient.post('/reports', { targetType: target.type, targetId: target.id, reason, details: details.trim() || undefined, context: target.context });
+      toast.success('Thanks - our team will review it');
       close();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -56,8 +88,8 @@ export function ReportSheet({ target, onClose }: { target: ReportTarget | null; 
       title={target ? `Report ${target.label}` : 'Report'}
       footer={<Button title="Send report" onPress={send} loading={sending} disabled={!reason} />}
     >
-      <Text style={styles.lead}>Reports are confidential — the other person isn’t told who reported them.</Text>
-      {REASONS.map((r) => (
+      <Text style={styles.lead}>Reports are confidential - the other person isn’t told who reported them.</Text>
+      {reasonsFor(target).map((r) => (
         <TouchableOpacity key={r.key} style={styles.row} onPress={() => setReason(r.key)}>
           <Ionicons name={reason === r.key ? 'radio-button-on' : 'radio-button-off'} size={20} color={reason === r.key ? colors.accent : colors.textFaint} />
           <Text style={[styles.rowText, reason === r.key && { fontWeight: '800' }]}>{r.label}</Text>

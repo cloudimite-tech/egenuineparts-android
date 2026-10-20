@@ -37,6 +37,7 @@ export function SignupScreen({ route, navigation }: Props) {
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
+  const [postalCode, setPostalCode] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,7 @@ export function SignupScreen({ route, navigation }: Props) {
     if (addressLine1.trim().length < 3) e.addressLine1 = 'Enter your house number and street.';
     if (city.trim().length < 2) e.city = 'Enter your city.';
     if (!district) e.district = 'Choose your district.';
+    if (!/^\d{5}$/.test(postalCode)) e.postalCode = 'Enter your 5-digit postal code.';
     if (!agreed) e.terms = 'Please accept the Terms of Use and Privacy Policy.';
     setErrors(e);
     setServerError(null);
@@ -70,6 +72,7 @@ export function SignupScreen({ route, navigation }: Props) {
         addressLine2: addressLine2.trim(),
         city: city.trim(),
         district,
+        postalCode,
       });
       // Next: confirm the email with the 6-digit code we just sent.
       navigation.replace('VerifyEmail', { email: sentTo, sent: true });
@@ -125,6 +128,7 @@ export function SignupScreen({ route, navigation }: Props) {
             <DistrictSelect value={district} onChange={setDistrict} error={errors.district} />
           </View>
         </View>
+        <TextField label="Postal code" placeholder="10250" keyboardType="number-pad" maxLength={5} value={postalCode} onChangeText={(t) => setPostalCode(t.replace(/\D/g, '').slice(0, 5))} error={errors.postalCode} />
 
         <TouchableOpacity style={styles.agree} onPress={() => setAgreed((a) => !a)} activeOpacity={0.8}>
           <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={22} color={agreed ? colors.accent : errors.terms ? colors.accent : colors.textMuted} />

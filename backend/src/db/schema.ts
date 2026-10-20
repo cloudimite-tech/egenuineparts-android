@@ -55,6 +55,7 @@ export const users = pgTable('users', {
   addressLine2: varchar('address_line2', { length: 255 }),
   city: varchar('city', { length: 100 }),
   district: varchar('district', { length: 100 }),
+  postalCode: varchar('postal_code', { length: 10 }),
   // ---- account security ----
   emailVerifiedAt: timestamp('email_verified_at'),
   termsAcceptedAt: timestamp('terms_accepted_at'),
@@ -209,6 +210,7 @@ export const orders = pgTable('orders', {
   addressLine2: varchar('address_line2', { length: 255 }),
   city: varchar('city', { length: 100 }).notNull(),
   district: varchar('district', { length: 100 }),
+  postalCode: varchar('postal_code', { length: 10 }),
   contactPhone: varchar('contact_phone', { length: 32 }),
   paymentMethod: varchar('payment_method', { length: 32 }).notNull().default('COD'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -349,6 +351,19 @@ export const adminAudit = pgTable('admin_audit', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Signed-in admin-panel devices, so an admin can see and sign out each one.
+export const adminSessions = pgTable('admin_sessions', {
+  id: id(),
+  userId: text('user_id').notNull().references(() => users.id),
+  userAgent: varchar('user_agent', { length: 400 }),
+  ip: varchar('ip', { length: 64 }),
+  location: varchar('location', { length: 120 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+  revokedAt: timestamp('revoked_at'),
+});
+
 // ---- relations (for query-builder joins) ----
 // ---------------------------------------------------------------------------
 // Services (garages, service stations, auto electrical, …)
@@ -417,6 +432,23 @@ export const appointments = pgTable('appointments', {
   status: appointmentStatusEnum('status').notNull().default('REQUESTED'),
   sellerNote: text('seller_note'),
   respondedAt: timestamp('responded_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Sellers asking for a product category that isn't in the list yet.
+export const categoryRequests = pgTable('category_requests', {
+  id: id(),
+  storeId: text('store_id').notNull().references(() => stores.id),
+  requestedById: text('requested_by_id').notNull().references(() => users.id),
+  name: varchar('name', { length: 150 }).notNull(),
+  // The main group the seller thinks it belongs under (admins can change it).
+  parentId: text('parent_id').references(() => categories.id),
+  note: text('note'),
+  status: serviceTypeRequestStatusEnum('status').notNull().default('PENDING'),
+  categoryId: text('category_id').references(() => categories.id),
+  reviewNote: text('review_note'),
+  reviewedById: text('reviewed_by_id'),
+  reviewedAt: timestamp('reviewed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -526,6 +558,11 @@ export const serviceTypeRequestsRelations = relations(serviceTypeRequests, ({ on
   store: one(stores, { fields: [serviceTypeRequests.storeId], references: [stores.id] }),
   requestedBy: one(users, { fields: [serviceTypeRequests.requestedById], references: [users.id] }),
   serviceType: one(serviceTypes, { fields: [serviceTypeRequests.serviceTypeId], references: [serviceTypes.id] }),
+}));
+
+export const categoryRequestsRelations = relations(categoryRequests, ({ one }) => ({
+  store: one(stores, { fields: [categoryRequests.storeId], references: [stores.id] }),
+  requestedBy: one(users, { fields: [categoryRequests.requestedById], references: [users.id] }),
 }));
 
 export const appointmentsRelations = relations(appointments, ({ one }) => ({

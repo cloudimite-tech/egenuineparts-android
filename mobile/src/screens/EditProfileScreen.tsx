@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Themed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -26,6 +27,7 @@ export function EditProfileScreen({ navigation }: Props) {
   const [addressLine2, setAddressLine2] = useState(profile?.addressLine2 ?? '');
   const [city, setCity] = useState(profile?.city ?? '');
   const [district, setDistrict] = useState(profile?.district ?? '');
+  const [postalCode, setPostalCode] = useState(profile?.postalCode ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -36,6 +38,7 @@ export function EditProfileScreen({ navigation }: Props) {
     if (addressLine1.trim().length < 3) e.addressLine1 = 'Enter your house number and street.';
     if (city.trim().length < 2) e.city = 'Enter your city.';
     if (!district) e.district = 'Choose your district.';
+    if (!/^\d{5}$/.test(postalCode)) e.postalCode = 'Enter your 5-digit postal code.';
     setErrors(e);
     if (Object.keys(e).length) return;
     setSaving(true);
@@ -47,10 +50,11 @@ export function EditProfileScreen({ navigation }: Props) {
         addressLine2: addressLine2.trim(),
         city: city.trim(),
         district,
+        postalCode,
       });
       await refreshProfile();
       toast.success('Details saved');
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -79,6 +83,7 @@ export function EditProfileScreen({ navigation }: Props) {
               <DistrictSelect value={district} onChange={setDistrict} error={errors.district} />
             </View>
           </View>
+          <TextField label="Postal code" placeholder="10250" keyboardType="number-pad" maxLength={5} value={postalCode} onChangeText={(t) => setPostalCode(t.replace(/\D/g, '').slice(0, 5))} error={errors.postalCode} />
         </View>
       </ScrollView>
       <View style={[styles.bar, { paddingBottom: spacing.sm + insets.bottom }]}>

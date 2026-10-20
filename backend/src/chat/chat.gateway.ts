@@ -88,7 +88,7 @@ export class ChatGateway implements OnGatewayConnection {
     try {
       const result = await this.chat.postMessage(user.sub, data.conversationId, data.body);
       if (result.blocked) {
-        // Only the sender is told — the other party never sees the attempt.
+        // Only the sender is told - the other party never sees the attempt.
         client.emit('message_blocked', {
           conversationId: data.conversationId,
           clientId: data.clientId,

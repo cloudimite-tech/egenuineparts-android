@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Themed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -33,7 +34,7 @@ export function WriteReviewScreen({ route, navigation }: Props) {
     try {
       await apiClient.post(`/products/${productId}/reviews`, { rating, comment: comment.trim() || undefined });
       toast.success('Thanks for your review!');
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (e) {
       setError(errorMessage(e));
     } finally {

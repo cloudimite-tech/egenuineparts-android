@@ -7,7 +7,7 @@ import { stripValidShareLinks } from '../common/share-links';
 import { shortName } from '../products/products.service';
 import { effectivePrice } from '../products/pricing';
 
-// Only ever expose a display name for the other party — never email/phone.
+// Only ever expose a display name for the other party - never email/phone.
 const threadWith = {
   product: {
     columns: { id: true, title: true, brand: true, price: true, currency: true, salePrice: true, saleEndsAt: true, partNumber: true, isActive: true },

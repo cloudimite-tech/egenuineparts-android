@@ -64,7 +64,7 @@ export class SellerService {
       },
     });
 
-    // Group this store's items by order — a seller only ever sees their own
+    // Group this store's items by order - a seller only ever sees their own
     // lines of a multi-seller order.
     const byOrder = new Map<string, any>();
     for (const item of myItems) {
@@ -73,12 +73,14 @@ export class SellerService {
         byOrder.set(o.id, {
           id: o.id,
           createdAt: o.createdAt,
+          buyerId: o.buyer.id,
           buyerName: o.buyer.fullName,
           shipping: {
             addressLine1: o.addressLine1,
             addressLine2: o.addressLine2,
             city: o.city,
             district: o.district,
+            postalCode: o.postalCode,
             contactPhone: o.contactPhone,
           },
           paymentMethod: o.paymentMethod,

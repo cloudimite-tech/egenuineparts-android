@@ -21,7 +21,7 @@ interface AuthState {
   isGuest: boolean;
   hydrate: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  /** Creates the account and emails a code — sign-in happens after verifyEmail. */
+  /** Creates the account and emails a code - sign-in happens after verifyEmail. */
   register: (input: RegisterInput) => Promise<{ email: string }>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   resendCode: (email: string) => Promise<void>;
@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         set({ profile: data, user: nextUser });
         return data;
       } catch (e: any) {
-        // Token expired, revoked or account gone — fall back to guest browsing.
+        // Token expired, revoked or account gone - fall back to guest browsing.
         if (e?.status === 401) await get().logout();
         return null;
       }

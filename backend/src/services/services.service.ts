@@ -34,7 +34,7 @@ function noContact(...texts: (string | null | undefined)[]) {
   for (const t of texts) {
     if (!t) continue;
     const r = checkForContactInfo(t);
-    if (r.blocked) throw new BadRequestException('Please don’t include phone numbers, emails or links — keep contact inside AutoGuide chat.');
+    if (r.blocked) throw new BadRequestException('Please don’t include phone numbers, emails or links - keep contact inside AutoGuide chat.');
   }
 }
 
@@ -180,7 +180,7 @@ export class ServicesService {
   }
 
   // ------------------------------------------------------------------
-  // "My service isn't listed" — sellers ask admins to add a type
+  // "My service isn't listed" - sellers ask admins to add a type
   // ------------------------------------------------------------------
   async requestType(userId: string, dto: ServiceTypeRequestDto) {
     const store = await requireApprovedStore(userId);
@@ -188,7 +188,7 @@ export class ServicesService {
     noContact(name, dto.note);
     const slug = slugify(name);
     const existing = await db.query.serviceTypes.findFirst({ where: and(eq(serviceTypes.slug, slug), eq(serviceTypes.isActive, true)) });
-    if (existing) throw new ConflictException(`“${existing.name}” is already in the list — choose it when adding your service.`);
+    if (existing) throw new ConflictException(`“${existing.name}” is already in the list - choose it when adding your service.`);
     const mine = await db.query.serviceTypeRequests.findMany({ where: and(eq(serviceTypeRequests.storeId, store.id), eq(serviceTypeRequests.status, 'PENDING')) });
     const dup = mine.find((r) => slugify(r.name) === slug);
     if (dup) return this.presentRequest(dup);
@@ -243,7 +243,7 @@ export class ServicesService {
     try {
       this.gateway.broadcast(conversationId, m, recipients);
     } catch {
-      /* socket server not running (serverless) — clients poll */
+      /* socket server not running (serverless) - clients poll */
     }
   }
 
@@ -467,7 +467,7 @@ export class ServicesService {
     }
     await db.update(serviceTypeRequests).set({ status: 'APPROVED', serviceTypeId: type!.id, reviewedById: adminId, reviewedAt: new Date() }).where(eq(serviceTypeRequests.id, id));
     await audit(adminId, 'service_request_approve', 'service_request', id, type!.name);
-    await this.mail.sendInfo(r.requestedBy.email, 'Your service type was added', `Good news — “${type!.name}” is now in the AutoGuide service list. You can add your service from Account → My services.`);
+    await this.mail.sendInfo(r.requestedBy.email, 'Your service type was added', `Good news - “${type!.name}” is now in the AutoGuide service list. You can add your service from Account → My services.`);
     return { ok: true, serviceType: type };
   }
 

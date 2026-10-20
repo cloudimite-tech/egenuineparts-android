@@ -137,7 +137,7 @@ export function SellerServicesScreen({ navigation }: Props) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.reqName}>{r.name}</Text>
                       <Text style={styles.reqSub}>
-                        {r.status === 'PENDING' ? `Waiting for AutoGuide · sent ${timeAgo(r.createdAt)}` : r.status === 'APPROVED' ? 'Added — you can choose it now' : 'Not added'}
+                        {r.status === 'PENDING' ? `Waiting for AutoGuide · sent ${timeAgo(r.createdAt)}` : r.status === 'APPROVED' ? 'Added - you can choose it now' : 'Not added'}
                       </Text>
                       {r.reviewNote ? <Text style={styles.reqNote}>{r.reviewNote}</Text> : null}
                     </View>

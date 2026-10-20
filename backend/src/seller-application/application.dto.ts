@@ -8,7 +8,7 @@ export class SellerApplicationDto {
   @IsOptional() @IsString() @MaxLength(1000) bio?: string;
   @IsOptional() @IsString() @MaxLength(255) returnsPolicy?: string;
 
-  // Owner identity — Sri Lankan NIC: old (123456789V) or new (200012345678)
+  // Owner identity - Sri Lankan NIC: old (123456789V) or new (200012345678)
   @IsString() @Matches(/^(\d{9}[VvXx]|\d{12})$/, { message: 'Enter a valid NIC number (e.g. 912345678V or 199112345678).' })
   nicNumber: string;
   @IsString() nicFrontDocumentId: string;

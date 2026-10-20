@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { colors } from '../theme/theme';
 
-// Near-black fading to the logo charcoal — the AutoGuide header.
+// Near-black fading to the logo charcoal - the AutoGuide header.
 
 export function GradientHeader({ style, children }: { style?: StyleProp<ViewStyle>; children: React.ReactNode }) {
   return (

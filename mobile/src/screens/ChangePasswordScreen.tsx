@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from '../components/Themed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -30,7 +31,7 @@ export function ChangePasswordScreen({ navigation }: Props) {
     try {
       await changePassword(current, next);
       toast.success('Password changed');
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (e) {
       setError(errorMessage(e));
     } finally {

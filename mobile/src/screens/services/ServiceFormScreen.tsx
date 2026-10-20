@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { goBackOr } from '../../navigation/goBackOr';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -131,7 +132,7 @@ export function ServiceFormScreen({ route, navigation }: Props) {
       if (editing) await apiClient.patch(`/services/${serviceId}`, body);
       else await apiClient.post('/services', body);
       toast.success(editing ? 'Service updated.' : 'Your service is live!');
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       toast.error(errorMessage(err, 'Couldn’t save the service.'));
     } finally {
@@ -187,7 +188,7 @@ export function ServiceFormScreen({ route, navigation }: Props) {
           {errors.type ? <Text style={styles.err}>{errors.type}</Text> : null}
           <TouchableOpacity style={styles.notListed} onPress={() => setReqOpen(true)}>
             <Ionicons name="add-circle-outline" size={18} color={colors.accent} />
-            <Text style={styles.notListedText}>My service isn’t listed — ask us to add it</Text>
+            <Text style={styles.notListedText}>My service isn’t listed - ask us to add it</Text>
           </TouchableOpacity>
         </Card>
 
@@ -230,7 +231,7 @@ export function ServiceFormScreen({ route, navigation }: Props) {
             onChangeText={setDescription}
             multiline
             maxLength={4000}
-            hint="Don’t add phone numbers or links — customers contact you through AutoGuide chat."
+            hint="Don’t add phone numbers or links - customers contact you through AutoGuide chat."
           />
         </Card>
 
@@ -264,7 +265,7 @@ export function ServiceFormScreen({ route, navigation }: Props) {
         title="Request a service type"
         footer={<Button title="Send request" icon="send" onPress={sendRequest} loading={reqSaving} />}
       >
-        <Text style={styles.reqIntro}>Tell us what’s missing. Our team reviews requests and adds new types to the list — we’ll email you when it’s ready.</Text>
+        <Text style={styles.reqIntro}>Tell us what’s missing. Our team reviews requests and adds new types to the list - we’ll email you when it’s ready.</Text>
         <TextField label="Service name" placeholder="e.g. Wheel alignment" value={reqName} onChangeText={setReqName} maxLength={100} />
         <TextField label="Anything else?" optional placeholder="What the service involves" value={reqNote} onChangeText={setReqNote} multiline maxLength={500} />
       </SheetModal>

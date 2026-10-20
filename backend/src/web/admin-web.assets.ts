@@ -1,4 +1,4 @@
-// Web admin panel — plain HTML/CSS/JS, no build step. Talks to /api/admin/*.
+// Web admin panel - plain HTML/CSS/JS, no build step. Talks to /api/admin/*.
 export const ADMIN_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin · AutoGuide</title><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#161314">
@@ -188,6 +188,7 @@ table.table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5p
 .profile-card{display:flex;gap:16px;align-items:center;margin-bottom:18px}.profile-card b{font-size:16px;display:block}.profile-card span{color:var(--muted);font-size:13px}
 .meter{display:flex;gap:4px;margin-top:8px}.meter i{flex:1;height:4px;border-radius:4px;background:var(--line)}.meter.s1 i:nth-child(-n+1){background:var(--bad)}.meter.s2 i:nth-child(-n+2){background:var(--warn)}.meter.s3 i:nth-child(-n+3){background:#3BA776}.meter.s4 i{background:var(--ok)}
 .danger-zone{border-color:var(--danger-line)}
+.sess{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-2)}.sess:first-child{padding-top:0}.sess:last-child{border-bottom:0;padding-bottom:0}.sess .grow{flex:1;min-width:0}.sess b{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:600}.sess small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 
 /* ---------- modal, lightbox, toasts ---------- */
 .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(14,13,51,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fade .15s ease-out}
@@ -348,11 +349,11 @@ export const ADMIN_JS = `
 
   // ---------- helpers ----------
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function when(d) { return d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; }
-  function day(d) { return d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'; }
+  function when(d) { return d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; }
+  function day(d) { return d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'; }
   function time(d) { return d ? new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''; }
   function ago(d) {
-    if (!d) return '—';
+    if (!d) return '-';
     var s = Math.round((Date.now() - new Date(d).getTime()) / 1000);
     if (s < 45) return 'just now';
     var m = Math.round(s / 60); if (m < 60) return m + ' min ago';
@@ -438,6 +439,40 @@ export const ADMIN_JS = `
     });
   }
 
+  // ---------- authenticator code prompt (password / email / authenticator changes) ----------
+  // o.run(code) does the request; a wrong code keeps the popup open to try again,
+  // any other error closes it and is shown on the form (rejects).
+  function askCode(o) {
+    return new Promise(function (resolve, reject) {
+      var root = document.getElementById('modal-root');
+      root.innerHTML = '<div class="modal-backdrop"><form class="modal" role="dialog" aria-modal="true" novalidate><div class="modal-b"><div class="modal-ic tile t-navy">' + ic('shield') + '</div><h3>' + esc(o.title || 'Enter your authenticator code') + '</h3><p class="lead">' + esc(o.text || 'Open your authenticator app and enter the 6-digit code for AutoGuide.') + '</p>' +
+        '<div class="field"><input class="input otp" id="m-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" aria-label="6-digit code"></div><div id="m-err"></div></div>' +
+        '<div class="modal-f"><button type="button" class="btn btn-ghost" id="m-cancel">Cancel</button><button class="btn btn-navy" id="m-ok">' + ic('shield') + ' ' + esc(o.confirm || 'Confirm') + '</button></div></form></div>';
+      var back = root.querySelector('.modal-backdrop'), form = root.querySelector('form'), inp = root.querySelector('#m-code'), ok = root.querySelector('#m-ok'), err = root.querySelector('#m-err');
+      var running = false;
+      function close() { document.removeEventListener('keydown', key); root.innerHTML = ''; }
+      function cancel() { if (running) return; close(); resolve(null); }
+      function key(e) { if (e.key === 'Escape') cancel(); }
+      document.addEventListener('keydown', key);
+      back.addEventListener('mousedown', function (e) { if (e.target === back) cancel(); });
+      root.querySelector('#m-cancel').addEventListener('click', cancel);
+      inp.addEventListener('input', function () { inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 6); if (inp.value.length === 6) submit(); });
+      form.addEventListener('submit', function (e) { e.preventDefault(); submit(); });
+      function submit() {
+        if (running) return;
+        if (inp.value.length !== 6) { err.innerHTML = errBox('Enter the 6-digit code.'); inp.focus(); return; }
+        running = true; err.innerHTML = ''; inp.disabled = true;
+        var done = busy(ok, 'Checking…');
+        o.run(inp.value).then(function (r) { close(); resolve(r); }).catch(function (e) {
+          running = false; done(); inp.disabled = false;
+          if (/code/i.test((e && e.message) || '')) { err.innerHTML = errBox(e.message); inp.value = ''; inp.focus(); return; }
+          close(); reject(e);
+        });
+      }
+      setTimeout(function () { inp.focus(); }, 30);
+    });
+  }
+
   function lightbox(url, label, isPdf) {
     var root = document.getElementById('modal-root');
     root.innerHTML = '<div class="lightbox"><div class="lb-bar"><b>' + esc(label) + '</b><a class="btn btn-sm btn-ghost" href="' + esc(url) + '" target="_blank" rel="noopener">' + ic('ext') + ' Open in new tab</a><button class="icon-btn" id="lb-x" aria-label="Close">' + ic('x') + '</button></div>' +
@@ -458,7 +493,7 @@ export const ADMIN_JS = `
     return fetch('/api' + path, { method: opts.method || 'GET', headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined })
       .then(function (r) {
         return r.json().catch(function () { return {}; }).then(function (data) {
-          if (r.status === 401 && state.token && path.indexOf('/admin/auth/login') !== 0) { signOut('Your session ended. Please sign in again.'); throw new Error('Signed out'); }
+          if (r.status === 401 && state.token && path.indexOf('/admin/auth/login') !== 0) { signOut((data && typeof data.message === 'string' && data.message) || 'Your session ended. Please sign in again.'); throw new Error('Signed out'); }
           if (!r.ok) { var m = data && data.message; throw new Error(Array.isArray(m) ? m[0] : (m || 'Something went wrong. Please try again.')); }
           return data;
         });
@@ -495,14 +530,14 @@ export const ADMIN_JS = `
         '<p style="text-align:center;margin:16px 0 0"><button type="button" class="btn-link" id="restart">' + ic('back') + ' Use a different account</button></p>';
     } else {
       body = '<h2>Welcome back</h2><p class="lead">Sign in to the admin console to continue.</p>' +
-        '<div class="field"><label for="email">Email address</label><div class="input-icon">' + ic('mail') + '<input class="input" id="email" type="email" autocomplete="username" placeholder="you@autoguide.lk" required></div></div>' +
+        '<div class="field"><label for="email">Email address</label><div class="input-icon">' + ic('mail') + '<input class="input" id="email" type="email" autocomplete="username" placeholder="you@example.com" required></div></div>' +
         '<div class="field"><label for="password">Password</label><div class="input-icon">' + ic('lock') + '<input class="input" id="password" type="password" autocomplete="current-password" placeholder="••••••••••" required></div></div>' +
         '<button class="btn btn-primary btn-block" type="submit">Continue ' + ic('chev') + '</button>';
     }
     app.innerHTML = '<div class="auth"><aside class="auth-brand"><div class="auth-logo"><img src="/admin/logo-mark.png" alt="">AutoGuide</div>' +
-      '<div class="auth-copy"><h1>The control room for Sri Lanka’s parts marketplace.</h1><p>Verify sellers, resolve reports and keep every buyer safe — all in one place.</p>' +
+      '<div class="auth-copy"><h1>The control room for Sri Lanka’s parts marketplace.</h1><p>Verify sellers, resolve reports and keep every buyer safe - all in one place.</p>' +
       '<div class="auth-points"><div>' + ic('okc') + ' Seller KYC with NIC, BR and on-site selfie</div><div>' + ic('okc') + ' Reports, moderation and bans</div><div>' + ic('okc') + ' Full audit trail of every admin action</div></div></div>' +
-      '<div class="auth-foot">Protected area · Two-step verification required · © ' + new Date().getFullYear() + ' AutoGuide</div></aside>' +
+      '<div class="auth-foot">Protected area · Two-step verification required<br>© ' + new Date().getFullYear() + ' AutoGuide. All rights reserved. Developed by MonolythCode.</div></aside>' +
       '<main class="auth-form"><form class="auth-card" id="f" novalidate><img class="wm wm-dark" src="/admin/logo.png" alt="AutoGuide"><img class="wm wm-light" src="/admin/logo-light.png" alt="AutoGuide">' +
       '<div class="steps"><span class="on"></span><span class="' + (stepNo >= 2 ? 'on' : '') + '"></span></div>' +
       (msg ? '<div class="alert ' + (/^Signed out/.test(msg) ? 'alert-info' : 'alert-bad') + '">' + ic(/^Signed out/.test(msg) ? 'info' : 'alertc') + '<div>' + esc(msg) + '</div></div>' : '') + body + '</form></main></div>';
@@ -545,7 +580,7 @@ export const ADMIN_JS = `
   }
 
   // ---------- layout & routing ----------
-  var TITLES = { overview: 'Overview', applications: 'Seller applications', application: 'Seller applications', reports: 'Reports', services: 'Services', users: 'Users', audit: 'Audit log', settings: 'Settings' };
+  var TITLES = { overview: 'Overview', applications: 'Seller applications', application: 'Seller applications', reports: 'Reports', services: 'Services', categories: 'Product categories', users: 'Users', audit: 'Audit log', settings: 'Settings' };
   function navItem(id, icon, label, count) {
     var active = state.view === id || (id === 'applications' && state.view === 'application');
     return '<a href="#/' + id + '" data-go="' + id + '" class="' + (active ? 'active' : '') + '">' + ic(icon) + '<span>' + label + '</span>' + (count ? '<span class="count" data-count="' + id + '">' + esc(count) + '</span>' : '') + '</a>';
@@ -558,7 +593,7 @@ export const ADMIN_JS = `
     app.innerHTML = '<div class="shell" id="shell"><div class="scrim" id="scrim"></div><aside class="side">' +
       '<div class="side-brand"><img src="/admin/logo-mark.png" alt=""><div><b>AutoGuide</b><small>ADMIN</small></div></div>' +
       '<nav class="nav"><div class="nav-label">WORKSPACE</div>' + navItem('overview', 'grid', 'Overview') + navItem('applications', 'store', 'Seller applications', s.sellers.PENDING) +
-      navItem('reports', 'flag', 'Reports', s.openReports) + navItem('services', 'tool', 'Services', s.serviceRequests) + navItem('users', 'users', 'Users') +
+      navItem('reports', 'flag', 'Reports', s.openReports) + navItem('services', 'tool', 'Services', s.serviceRequests) + navItem('categories', 'pkg', 'Categories', s.categoryRequests) + navItem('users', 'users', 'Users') +
       '<div class="nav-label">SYSTEM</div>' + navItem('audit', 'history', 'Audit log') + navItem('settings', 'settings', 'Settings') + '</nav>' +
       '<div class="side-user">' + av(a.fullName || a.email) + '<div class="who"><b>' + esc(a.fullName || 'Administrator') + '</b><span>' + esc(a.email || '') + '</span></div><button class="icon-btn" id="signout" title="Sign out" aria-label="Sign out">' + ic('logout') + '</button></div></aside>' +
       '<div class="main"><header class="topbar"><button class="icon-btn menu-btn" id="menu" aria-label="Menu">' + ic('menu') + '</button><div class="crumbs">' + crumbs + '</div><div class="grow"></div>' +
@@ -566,13 +601,16 @@ export const ADMIN_JS = `
       '<button class="icon-btn theme-btn" id="theme-btn" title="Light / dark mode" aria-label="Switch light or dark mode" style="color:var(--muted)">' + ic(resolvedTheme() === 'dark' ? 'sun' : 'moon') + '</button>' +
       '<button class="icon-btn" id="reload" title="Refresh" aria-label="Refresh" style="color:var(--muted)">' + ic('refresh') + '</button></header>' +
       '<div class="content" id="main">' + content + '</div></div></div>';
-    $('#signout').addEventListener('click', function () {
-      modal({ icon: 'logout', title: 'Sign out?', text: 'You’ll need your password and authenticator code to sign in again.', confirm: 'Sign out' }).then(function (ok) { if (ok) signOut('Signed out. See you soon.'); });
+    on('#signout', 'click', function () {
+      modal({ icon: 'logout', title: 'Sign out?', text: 'You’ll need your password and authenticator code to sign in again.', confirm: 'Sign out' }).then(function (ok) {
+        if (!ok) return;
+        api('/admin/auth/logout', { method: 'POST', body: {} }).catch(function () {}).then(function () { if (state.token) signOut('Signed out. See you soon.'); });
+      });
     });
-    $('#menu').addEventListener('click', function () { $('#shell').classList.toggle('open'); });
-    $('#scrim').addEventListener('click', function () { $('#shell').classList.remove('open'); });
-    $('#reload').addEventListener('click', function () { state.stats = null; route(); });
-    $('#theme-btn').addEventListener('click', function () {
+    on('#menu', 'click', function () { var sh = $('#shell'); if (sh) sh.classList.toggle('open'); });
+    on('#scrim', 'click', function () { var sh = $('#shell'); if (sh) sh.classList.remove('open'); });
+    on('#reload', 'click', function () { state.stats = null; route(); });
+    on('#theme-btn', 'click', function () {
       var next = resolvedTheme() === 'dark' ? 'light' : 'dark';
       setTheme(next);
       toast(next === 'dark' ? 'Dark mode on' : 'Light mode on', 'info');
@@ -595,7 +633,7 @@ export const ADMIN_JS = `
     var arg = parts[1] ? decodeURIComponent(parts[1]) : null;
     state.view = view; state.arg = arg;
     var p = state.stats ? Promise.resolve(state.stats) : api('/admin/stats').then(function (s) { state.stats = s; return s; });
-    p.then(function () { render(view, arg); refreshStats(); }).catch(function (e) { if (state.token) shell(errBox(e.message)); });
+    p.then(function () { render(view, arg); refreshStats(); }).catch(function (e) { if (window.console) console.error('[admin] ' + view + ' failed:', e); if (state.token) shell(errBox(e.message)); });
   }
   var lastStats = 0;
   function refreshStats() {
@@ -603,7 +641,7 @@ export const ADMIN_JS = `
     lastStats = Date.now();
     api('/admin/stats').then(function (s) {
       state.stats = s;
-      [['applications', s.sellers.PENDING], ['reports', s.openReports], ['services', s.serviceRequests]].forEach(function (x) {
+      [['applications', s.sellers.PENDING], ['reports', s.openReports], ['services', s.serviceRequests], ['categories', s.categoryRequests]].forEach(function (x) {
         var a = app.querySelector('.nav a[data-go="' + x[0] + '"]'); if (!a) return;
         var c = a.querySelector('.count');
         if (!x[1]) { if (c) c.remove(); return; }
@@ -620,6 +658,7 @@ export const ADMIN_JS = `
     if (view === 'application') return application(arg);
     if (view === 'reports') return reportsView(arg || 'OPEN');
     if (view === 'services') return servicesView(arg || 'requests');
+    if (view === 'categories') return categoriesView(arg || 'requests');
     if (view === 'users') return usersView(arg || '');
     if (view === 'audit') return auditView();
     if (view === 'settings') return settingsView();
@@ -635,7 +674,7 @@ export const ADMIN_JS = `
     var pending = s.sellers.PENDING || 0, open = s.openReports || 0, sreq = s.serviceRequests || 0;
     var attention = pending + open + sreq;
     var hero = '<div class="hero"><div class="tile" style="width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.12);color:#fff">' + ic(attention ? 'alert' : 'shield') + '</div><div class="grow">' +
-      (attention ? '<h2>' + (pending ? pending + (pending === 1 ? ' seller is' : ' sellers are') + ' waiting for review' : 'No sellers waiting') + (open ? ' · ' + open + ' open report' + (open === 1 ? '' : 's') : '') + (sreq ? ' · ' + sreq + ' service request' + (sreq === 1 ? '' : 's') : '') + '</h2><p>Sellers can’t list parts until you approve them — the oldest applications are shown first.</p>'
+      (attention ? '<h2>' + (pending ? pending + (pending === 1 ? ' seller is' : ' sellers are') + ' waiting for review' : 'No sellers waiting') + (open ? ' · ' + open + ' open report' + (open === 1 ? '' : 's') : '') + (sreq ? ' · ' + sreq + ' service request' + (sreq === 1 ? '' : 's') : '') + '</h2><p>Sellers can’t list parts until you approve them - the oldest applications are shown first.</p>'
         : '<h2>All caught up</h2><p>No applications or reports need your attention right now. Nice work.</p>') + '</div>' +
       (pending ? '<button class="btn btn-primary" data-go="applications">' + ic('store') + ' Review applications</button>' : '') + (open ? '<button class="btn btn-ghost" data-go="reports">' + ic('flag') + ' Open reports</button>' : '') + (sreq ? '<button class="btn btn-ghost" data-go="services">' + ic('tool') + ' Service requests</button>' : '') + '</div>';
     var total = (s.sellers.PENDING || 0) + (s.sellers.APPROVED || 0) + (s.sellers.REJECTED || 0) + (s.sellers.SUSPENDED || 0);
@@ -793,7 +832,7 @@ export const ADMIN_JS = `
       on('[data-map]', 'click', function (e) {
         var r = byId[e.currentTarget.closest('[data-id]').getAttribute('data-id')];
         formModal({ icon: 'tool', title: 'Use an existing type', text: 'If “' + r.name + '” is really the same as a service already in the list, link it instead of adding a duplicate. The seller is told which one to choose.', confirm: 'Link request', fields: [
-          { name: 'existingTypeId', label: 'Existing service type', type: 'select', value: '', options: types.map(function (t) { return [t.id, t.name + (t.isActive ? '' : ' (hidden — will be shown)')]; }) }
+          { name: 'existingTypeId', label: 'Existing service type', type: 'select', value: '', options: types.map(function (t) { return [t.id, t.name + (t.isActive ? '' : ' (hidden - will be shown)')]; }) }
         ] }).then(function (v) {
           if (!v) return;
           api('/admin/service-requests/' + r.id + '/approve', { method: 'POST', body: { existingTypeId: v.existingTypeId } })
@@ -807,6 +846,75 @@ export const ADMIN_JS = `
           if (!note) return;
           api('/admin/service-requests/' + r.id + '/decline', { method: 'POST', body: { note: note } })
             .then(function () { toast('Request declined. The seller has been told why.'); state.stats = null; route(); }).catch(function (err) { toast(err.message, 'bad'); });
+        });
+      });
+    }).catch(function (e) { var el = $('#list'); if (el) el.innerHTML = errBox(e.message); });
+  }
+
+  // ---------- product categories: sellers' requests ----------
+  var catTree = null;
+  function loadCats() { return catTree ? Promise.resolve(catTree) : api('/categories').then(function (t) { catTree = t; return t; }); }
+  function categoriesView(tab) {
+    var s = state.stats || {};
+    var tabs = [['requests', 'Requests', s.categoryRequests || 0], ['approved', 'Added', null], ['declined', 'Declined', null]];
+    shell(pageHead('Product categories', 'Sellers can ask for a category that isn’t listed yet. New ones are added as sub-categories under a main group.') +
+      '<div class="toolbar"><div class="seg">' + tabs.map(function (t) {
+        return '<button data-tab="' + t[0] + '" class="' + (t[0] === tab ? 'on' : '') + '">' + t[1] + (t[2] != null ? '<span class="n">' + t[2] + '</span>' : '') + '</button>';
+      }).join('') + '</div></div><div id="list">' + skRows(3) + '</div>');
+    on('[data-tab]', 'click', function (e) { go('categories', e.currentTarget.getAttribute('data-tab')); });
+    var status = tab === 'approved' ? 'APPROVED' : tab === 'declined' ? 'DECLINED' : 'PENDING';
+    Promise.all([api('/admin/category-requests?status=' + status), loadCats()]).then(function (res) {
+      var rows = res[0], tree = res[1] || [];
+      var el = $('#list'); if (!el) return;
+      if (!rows.length) {
+        el.innerHTML = '<div class="card">' + (status === 'PENDING' ? empty('okc', 'No requests waiting', 'When a seller can’t find the right category for a part, their request shows up here.') : empty('inbox', 'Nothing here yet', '')) + '</div>';
+        return;
+      }
+      el.innerHTML = rows.map(function (r) {
+        var st = r.store || {}, by = r.requestedBy || {};
+        return '<div class="card report" data-id="' + esc(r.id) + '"><div class="report-top"><div class="tile t-info" style="width:34px;height:34px;border-radius:10px">' + ic('pkg') + '</div><span class="tag">new product category</span>' +
+          (status === 'PENDING' ? badge('PENDING', 'Waiting') : status === 'APPROVED' ? badge('APPROVED', 'Added') : badge('REJECTED', 'Declined')) +
+          '<span class="when" title="' + esc(when(r.createdAt)) + '">' + esc(ago(r.createdAt)) + '</span></div>' +
+          '<h4>“' + esc(r.name) + '”' + (r.parent ? ' <span style="color:var(--muted);font-weight:500">under ' + esc(r.parent.name) + '</span>' : '') +
+          (r.category && r.category.name !== r.name ? ' <span style="color:var(--muted);font-weight:500">→ added as ' + esc(r.category.name) + '</span>' : '') + '</h4>' +
+          (r.note ? '<div class="quote">' + esc(r.note) + '</div>' : '') +
+          (r.reviewNote ? '<div class="alert alert-warn" style="margin:10px 0 0">' + ic('msg') + '<div><b>Reason sent:</b> ' + esc(r.reviewNote) + '</div></div>' : '') +
+          '<div class="people"><span>' + ic('store') + 'Requested by <b style="color:var(--text)">' + esc(st.name) + '</b> · ' + esc(joinAddr([st.city, st.district])) + '</span><span>' + ic('user') + esc(by.fullName) + ' · ' + esc(by.email) + '</span></div>' +
+          (status === 'PENDING' ? '<div class="report-actions"><div class="grow"></div><button class="btn btn-ghost btn-sm" data-decline>' + ic('x') + ' Decline</button><button class="btn btn-ghost btn-sm" data-map>' + ic('chev') + ' Use existing category</button><button class="btn btn-ok btn-sm" data-approve>' + ic('check') + ' Add category</button></div>' : '') + '</div>';
+      }).join('');
+      var byId = {}; rows.forEach(function (r) { byId[r.id] = r; });
+      var groups = tree.map(function (p) { return [p.id, p.name]; });
+      var subs = [];
+      tree.forEach(function (p) { (p.children || []).forEach(function (c) { subs.push([c.id, p.name + ' › ' + c.name]); }); });
+      function done(msg) { toast(msg); catTree = null; state.stats = null; route(); }
+      on('[data-approve]', 'click', function (e) {
+        var r = byId[e.currentTarget.closest('[data-id]').getAttribute('data-id')];
+        formModal({ icon: 'plus', tone: 'ok', title: 'Add “' + r.name + '” as a category?', text: 'Sellers can choose it straight away and ' + (r.store ? r.store.name : 'the seller') + ' gets an email.', confirm: 'Add category', confirmClass: 'btn-ok', fields: [
+          { name: 'name', label: 'Name shown in the app', value: r.name, required: true, hint: 'Tidy up spelling or capitals if needed.' },
+          { name: 'parentId', label: 'Main group', type: 'select', value: r.parentId || (groups[0] && groups[0][0]), options: groups }
+        ] }).then(function (v) {
+          if (!v) return;
+          api('/admin/category-requests/' + r.id + '/approve', { method: 'POST', body: { name: v.name, parentId: v.parentId } })
+            .then(function (res) { done('“' + res.category.name + '” added. The seller has been told.'); }).catch(function (err) { toast(err.message, 'bad'); });
+        });
+      });
+      on('[data-map]', 'click', function (e) {
+        var r = byId[e.currentTarget.closest('[data-id]').getAttribute('data-id')];
+        formModal({ icon: 'pkg', title: 'Use an existing category', text: 'If “' + r.name + '” is really the same as a category already in the list, link it instead of adding a duplicate. The seller is told which one to choose.', confirm: 'Link request', fields: [
+          { name: 'existingCategoryId', label: 'Existing category', type: 'select', value: '', options: subs }
+        ] }).then(function (v) {
+          if (!v) return;
+          api('/admin/category-requests/' + r.id + '/approve', { method: 'POST', body: { existingCategoryId: v.existingCategoryId } })
+            .then(function (res) { done('Linked to “' + res.category.name + '”.'); }).catch(function (err) { toast(err.message, 'bad'); });
+        });
+      });
+      on('[data-decline]', 'click', function (e) {
+        var r = byId[e.currentTarget.closest('[data-id]').getAttribute('data-id')];
+        modal({ icon: 'x', tone: 'bad', title: 'Decline “' + r.name + '”?', text: 'The seller gets an email with your reason.', confirm: 'Decline request', confirmClass: 'btn-primary',
+          input: { label: 'Reason (the seller sees this)', placeholder: 'Explain why…', chips: ['This is already covered by another category', 'Too specific - please use the closest category', 'We don’t list this kind of part yet'] } }).then(function (note) {
+          if (!note) return;
+          api('/admin/category-requests/' + r.id + '/decline', { method: 'POST', body: { note: note } })
+            .then(function () { done('Request declined. The seller has been told why.'); }).catch(function (err) { toast(err.message, 'bad'); });
         });
       });
     }).catch(function (e) { var el = $('#list'); if (el) el.innerHTML = errBox(e.message); });
@@ -836,8 +944,8 @@ export const ADMIN_JS = `
           return '<tr data-id="' + esc(t.id) + '"><td><div style="display:flex;flex-direction:column;gap:2px">' +
             '<button class="icon-btn" style="width:26px;height:22px;color:var(--muted)" data-move="-1" ' + (i === 0 ? 'disabled' : '') + ' title="Move up"><svg class="i" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg></button>' +
             '<button class="icon-btn" style="width:26px;height:22px;color:var(--muted)" data-move="1" ' + (i === rows.length - 1 ? 'disabled' : '') + ' title="Move down"><svg class="i" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button></div></td>' +
-            '<td><div class="person"><div class="tile ' + (t.isActive ? 't-navy' : 't-grey') + '" style="width:36px;height:36px;border-radius:10px">' + typeIcon(t.icon) + '</div><div style="min-width:0"><b>' + esc(t.name) + '</b><div class="sub">' + esc(t.description || '—') + '</div></div></div></td>' +
-            '<td class="hide-sm"><span class="sub">' + esc(ICON_LABELS[t.icon] || t.icon || '—') + '</span></td>' +
+            '<td><div class="person"><div class="tile ' + (t.isActive ? 't-navy' : 't-grey') + '" style="width:36px;height:36px;border-radius:10px">' + typeIcon(t.icon) + '</div><div style="min-width:0"><b>' + esc(t.name) + '</b><div class="sub">' + esc(t.description || '-') + '</div></div></div></td>' +
+            '<td class="hide-sm"><span class="sub">' + esc(ICON_LABELS[t.icon] || t.icon || '-') + '</span></td>' +
             '<td>' + esc(t.serviceCount) + '</td><td>' + (t.isActive ? badge('ACTIVE', 'Shown') : badge('SUSPENDED', 'Hidden')) + '</td>' +
             '<td class="r"><button class="btn btn-ghost btn-sm" data-edit>' + ic('settings') + ' Edit</button> ' +
             (t.isActive ? '<button class="btn btn-danger btn-sm" data-hide>' + ic('eye') + ' Hide</button>' : '<button class="btn btn-ghost btn-sm" data-show>' + ic('refresh') + ' Show</button>') + '</td></tr>';
@@ -902,9 +1010,9 @@ export const ADMIN_JS = `
     el.innerHTML = '<div class="card table-wrap"><table class="table"><thead><tr><th>Store</th><th class="hide-sm">BR number</th><th>Owner</th><th class="hide-sm">Location</th><th>' + (status === 'PENDING' ? 'Submitted' : 'Updated') + '</th><th>Status</th><th></th></tr></thead><tbody>' +
       rows.map(function (r) {
         var t = status === 'PENDING' ? r.submittedAt : (r.reviewedAt || r.submittedAt);
-        return '<tr class="click" data-id="' + esc(r.id) + '"><td><div class="person">' + av(r.storeName) + '<div style="min-width:0"><b>' + esc(r.storeName) + '</b><div class="sub">' + esc(r.businessName || '—') + '</div></div></div></td>' +
-          '<td class="hide-sm"><span class="mono">' + esc(r.brNumber || '—') + '</span></td><td>' + esc(r.ownerName) + '<div class="sub">' + esc(r.ownerEmail) + '</div></td>' +
-          '<td class="hide-sm">' + esc(joinAddr([r.city, r.district]) || '—') + '</td><td>' + esc(ago(t)) + '<div class="sub">' + esc(day(t)) + '</div></td><td>' + badge(r.status) + '</td><td class="r">' + ic('chev', 'chev') + '</td></tr>';
+        return '<tr class="click" data-id="' + esc(r.id) + '"><td><div class="person">' + av(r.storeName) + '<div style="min-width:0"><b>' + esc(r.storeName) + '</b><div class="sub">' + esc(r.businessName || '-') + '</div></div></div></td>' +
+          '<td class="hide-sm"><span class="mono">' + esc(r.brNumber || '-') + '</span></td><td>' + esc(r.ownerName) + '<div class="sub">' + esc(r.ownerEmail) + '</div></td>' +
+          '<td class="hide-sm">' + esc(joinAddr([r.city, r.district]) || '-') + '</td><td>' + esc(ago(t)) + '<div class="sub">' + esc(day(t)) + '</div></td><td>' + badge(r.status) + '</td><td class="r">' + ic('chev', 'chev') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     el.querySelectorAll('tr[data-id]').forEach(function (tr) { tr.addEventListener('click', function () { go('application', tr.getAttribute('data-id')); }); });
   }
@@ -919,13 +1027,13 @@ export const ADMIN_JS = `
   function distance(sf) {
     if (!sf) return '';
     var m = sf.distanceFromShopM;
-    if (m == null) return '<div class="note alert-warn">' + ic('alert') + '<div><b>No location on the selfie.</b> The phone didn’t share its location when the photo was taken — compare the background with the shop address.</div></div>';
+    if (m == null) return '<div class="note alert-warn">' + ic('alert') + '<div><b>No location on the selfie.</b> The phone didn’t share its location when the photo was taken - compare the background with the shop address.</div></div>';
     var cls = m <= 300 ? 'alert-ok' : m <= 2000 ? 'alert-warn' : 'alert-bad';
     var txt = m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km';
-    var verdict = m <= 300 ? 'Taken at the pinned shop.' : m <= 2000 ? 'Taken near the pinned shop — check it.' : 'Taken far from the pinned shop — be careful.';
+    var verdict = m <= 300 ? 'Taken at the pinned shop.' : m <= 2000 ? 'Taken near the pinned shop - check it.' : 'Taken far from the pinned shop - be careful.';
     return '<div class="note ' + cls + '">' + ic(m <= 300 ? 'okc' : 'pin') + '<div><b>Selfie taken ' + txt + ' from the shop pin.</b> ' + verdict + ' <span style="opacity:.8">· ' + esc(when(sf.takenAt)) + '</span></div></div>';
   }
-  function kv(rows) { return '<div class="kv">' + rows.map(function (r) { return '<div class="k">' + esc(r[0]) + '</div><div class="v' + (r[2] ? ' mono' : '') + '">' + (r[1] == null || r[1] === '' ? '<span style="color:var(--faint)">—</span>' : esc(r[1])) + '</div>'; }).join('') + '</div>'; }
+  function kv(rows) { return '<div class="kv">' + rows.map(function (r) { return '<div class="k">' + esc(r[0]) + '</div><div class="v' + (r[2] ? ' mono' : '') + '">' + (r[1] == null || r[1] === '' ? '<span style="color:var(--faint)">-</span>' : esc(r[1])) + '</div>'; }).join('') + '</div>'; }
   var CHECKS = ['NIC photos are clear and the name matches the owner', 'BR certificate shows the same business name and number', 'Shop address matches the map pin', 'Selfie was taken at the shop and shows the owner', 'Phone number and details look genuine'];
 
   function application(id) {
@@ -934,14 +1042,14 @@ export const ADMIN_JS = `
       var o = d.owner || {};
       var head = '<button class="back" id="back">' + ic('back') + ' All applications</button>' +
         '<div class="card detail-head">' + av(d.storeName, 'lg') + '<div style="flex:1;min-width:220px"><h1>' + esc(d.storeName) + ' ' + badge(d.status) + '</h1><div class="meta">' +
-        '<span>' + ic('brief') + esc(d.businessName || '—') + '</span><span>' + ic('pin') + esc(joinAddr([d.city, d.district]) || '—') + '</span>' +
+        '<span>' + ic('brief') + esc(d.businessName || '-') + '</span><span>' + ic('pin') + esc(joinAddr([d.city, d.district]) || '-') + '</span>' +
         '<span>' + ic('cal') + (d.status === 'PENDING' ? 'Submitted ' + esc(ago(d.submittedAt)) : esc(d.reviewedBy ? 'Reviewed by ' + d.reviewedBy : 'Reviewed') + ' · ' + esc(ago(d.reviewedAt))) + '</span>' +
         '<span>' + ic('pkg') + esc(d.productCount || 0) + ' live listings</span></div></div></div>' +
         (d.reviewNote ? '<div class="alert alert-warn" style="margin-bottom:18px">' + ic('msg') + '<div><b>Note sent to the seller:</b> ' + esc(d.reviewNote) + '</div></div>' : '');
       var docs = '<div class="card"><div class="card-head"><h3>' + ic('idcard') + ' Identity documents</h3><span class="hint" style="margin:0">Links expire in 10 min</span></div><div class="card-pad">' +
         '<div class="docs">' + docTile('nf', 'NIC front', 'idcard', d.nicFront) + docTile('nb', 'NIC back', 'idcard', d.nicBack) + docTile('br', 'BR certificate', 'file', d.document) + docTile('sf', 'Shop selfie', 'camera', d.selfie) + '</div>' + distance(d.selfie) + '</div></div>';
       var owner = '<div class="card"><div class="card-head"><h3>' + ic('user') + ' Owner</h3></div><div class="card-pad" style="padding-top:6px;padding-bottom:6px">' +
-        kv([['Full name', o.fullName], ['NIC number', d.nicNumber, 1], ['Email', o.email], ['Mobile', o.phone], ['Home address', joinAddr([o.addressLine1, o.addressLine2, o.city, o.district])], ['Member since', day(o.createdAt)]]) + '</div></div>';
+        kv([['Full name', o.fullName], ['NIC number', d.nicNumber, 1], ['Email', o.email], ['Mobile', o.phone], ['Home address', joinAddr([o.addressLine1, o.addressLine2, o.city, o.district, o.postalCode])], ['Member since', day(o.createdAt)]]) + '</div></div>';
       var biz = '<div class="card"><div class="card-head"><h3>' + ic('brief') + ' Business</h3></div><div class="card-pad" style="padding-top:6px;padding-bottom:6px">' +
         kv([['Registered name', d.businessName], ['BR number', d.brNumber, 1], ['Shop address', joinAddr([d.addressLine1, d.addressLine2, d.city, d.district])], ['Business phone', d.contactPhone], ['Store name', d.storeName], ['About', d.bio]]) + '</div></div>';
       var map = '<div class="card"><div class="card-head"><h3>' + ic('pin') + ' Shop location</h3>' + (d.latitude != null ? '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=' + d.latitude + ',' + d.longitude + '">' + ic('ext') + ' Google Maps</a>' : '') + '</div><div class="card-pad">' +
@@ -952,7 +1060,7 @@ export const ADMIN_JS = `
       var rejectLabel = d.status === 'APPROVED' ? 'Suspend store' : (d.status === 'PENDING' || d.status === 'SUSPENDED') ? 'Reject with reason' : '';
       var decision = '<div class="card sticky"><div class="card-head"><h3>' + ic('shield') + ' Decision</h3>' + badge(d.status) + '</div><div class="card-pad">' +
         (canApprove ? '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)"><span>Verification checklist</span><b id="ck-n" style="color:var(--text)">0 / ' + CHECKS.length + '</b></div><div class="progress"><span id="ck-bar" style="width:0"></span></div>' +
-          '<div class="check">' + CHECKS.map(function (c, i) { return '<label><input type="checkbox" data-ck="' + i + '"><span>' + esc(c) + '</span></label>'; }).join('') + '</div><div style="height:16px"></div>' : '<p class="hint" style="margin-top:0">This store is live. Suspend it if it breaks the rules — its listings are hidden immediately and the seller sees your reason.</p>') +
+          '<div class="check">' + CHECKS.map(function (c, i) { return '<label><input type="checkbox" data-ck="' + i + '"><span>' + esc(c) + '</span></label>'; }).join('') + '</div><div style="height:16px"></div>' : '<p class="hint" style="margin-top:0">This store is live. Suspend it if it breaks the rules - its listings are hidden immediately and the seller sees your reason.</p>') +
         '<div style="display:grid;gap:8px">' + (canApprove ? '<button class="btn btn-ok btn-block" id="approve">' + ic('check') + (d.status === 'PENDING' ? ' Approve seller' : ' Approve / reinstate') + '</button>' : '') +
         (rejectLabel ? '<button class="btn btn-danger btn-block" id="reject">' + ic(d.status === 'APPROVED' ? 'pause' : 'x') + ' ' + rejectLabel + '</button>' : '') + '</div></div>' +
         '<div style="border-top:1px solid var(--line-2);padding:14px 20px" class="legend"><div>' + ic('cal') + ' Submitted<b>' + esc(day(d.submittedAt)) + '</b></div>' + (d.reviewedAt ? '<div>' + ic('clock') + ' Last decision<b>' + esc(day(d.reviewedAt)) + '</b></div>' : '') + '</div></div>';
@@ -983,7 +1091,7 @@ export const ADMIN_JS = `
         var suspend = d.status === 'APPROVED';
         modal({ icon: suspend ? 'pause' : 'x', tone: 'bad', title: suspend ? 'Suspend ' + d.storeName + '?' : 'Reject this application?',
           text: suspend ? 'The store and all its listings are hidden right away.' : 'The seller can fix the problem and send the application again.',
-          input: { label: 'Reason (the seller sees this)', placeholder: 'Explain what needs fixing…', chips: suspend ? ['Selling fake or counterfeit parts', 'Repeated buyer complaints', 'Asking buyers to pay outside the app'] : ['The BR number doesn’t match the certificate', 'NIC photos are unclear — please upload them again', 'The selfie wasn’t taken at the shop', 'The shop address doesn’t match the map pin'] },
+          input: { label: 'Reason (the seller sees this)', placeholder: 'Explain what needs fixing…', chips: suspend ? ['Selling fake or counterfeit parts', 'Repeated buyer complaints', 'Asking buyers to pay outside the app'] : ['The BR number doesn’t match the certificate', 'NIC photos are unclear - please upload them again', 'The selfie wasn’t taken at the shop', 'The shop address doesn’t match the map pin'] },
           confirm: suspend ? 'Suspend store' : 'Reject application', confirmClass: 'btn-primary' }).then(function (note) {
           if (!note) return;
           api('/admin/sellers/' + id + '/reject', { method: 'POST', body: { note: note } }).then(function () { toast(suspend ? 'Store suspended.' : 'Application rejected. The seller has been told why.'); state.stats = null; route(); }).catch(function (e) { toast(e.message, 'bad'); });
@@ -997,7 +1105,7 @@ export const ADMIN_JS = `
       if (!window.L) { if (++tries < 40) setTimeout(wait, 100); return; }
       var el = document.getElementById('map'); if (!el) return;
       var map = L.map(el, { scrollWheelZoom: false }).setView([d.latitude, d.longitude], 16);
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin', attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
       var shop = L.circleMarker([d.latitude, d.longitude], { radius: 10, weight: 3, color: '#fff', fillColor: '#E5120B', fillOpacity: 1 }).addTo(map).bindTooltip('Shop pin');
       if (d.selfie && d.selfie.latitude != null) {
         var sf = L.circleMarker([d.selfie.latitude, d.selfie.longitude], { radius: 8, weight: 3, color: '#fff', fillColor: '#231F20', fillOpacity: 1 }).addTo(map).bindTooltip('Selfie');
@@ -1007,8 +1115,8 @@ export const ADMIN_JS = `
   }
 
   // ---------- reports ----------
-  var REASONS = { SCAM: 'Scam or fraud', FAKE_OR_COUNTERFEIT: 'Fake / counterfeit part', CONTACT_OUTSIDE_APP: 'Asking to deal outside the app', ABUSIVE: 'Abusive or harassment', INAPPROPRIATE: 'Inappropriate content', WRONG_INFO: 'Wrong or misleading info', SPAM: 'Spam', OTHER: 'Other' };
-  var TARGET_ICON = { PRODUCT: 'pkg', STORE: 'store', MESSAGE: 'msg', REVIEW: 'star', CONVERSATION: 'msg' };
+  var REASONS = { SCAM: 'Scam or fraud', FAKE_OR_COUNTERFEIT: 'Fake / counterfeit part', CONTACT_OUTSIDE_APP: 'Asking to deal outside the app', ABUSIVE: 'Abusive or harassment', INAPPROPRIATE: 'Inappropriate content', WRONG_INFO: 'Wrong or misleading info', SPAM: 'Spam', NO_SHOW: 'Fake order / didn’t show up', PAYMENT_ISSUE: 'Refused to pay / payment issue', OTHER: 'Other' };
+  var TARGET_ICON = { PRODUCT: 'pkg', STORE: 'store', MESSAGE: 'msg', REVIEW: 'star', CONVERSATION: 'msg', SERVICE: 'tool', USER: 'user' };
   var ACTIONS = {
     dismiss: { title: 'Dismiss this report?', text: 'Nothing changes for the reported user. Use this when the report isn’t valid.', confirm: 'Dismiss', cls: 'btn-navy', icon: 'x', tone: 'navy', done: 'Report dismissed.' },
     remove_content: { title: 'Remove this content?', text: 'The listing, review or message is hidden from everyone straight away.', confirm: 'Remove content', cls: 'btn-primary', icon: 'trash', tone: 'bad', done: 'Content removed.' },
@@ -1016,13 +1124,13 @@ export const ADMIN_JS = `
     ban_user: { title: 'Ban this user?', text: 'They’re signed out everywhere and can’t sign in again. Their store is suspended too.', confirm: 'Ban user', cls: 'btn-primary', icon: 'ban', tone: 'bad', done: 'User banned.' }
   };
   function reportsView(status) {
-    shell(pageHead('Reports', 'What buyers and sellers have reported about listings, stores, chats and reviews.') +
+    shell(pageHead('Reports', 'What buyers and sellers have reported about listings, stores, people, chats and reviews.') +
       '<div class="toolbar"><div class="seg">' + [['OPEN', 'Open'], ['RESOLVED', 'Resolved'], ['DISMISSED', 'Dismissed']].map(function (t) {
         return '<button data-tab="' + t[0] + '" class="' + (t[0] === status ? 'on' : '') + '">' + t[1] + (t[0] === 'OPEN' ? '<span class="n">' + (state.stats.openReports || 0) + '</span>' : '') + '</button>';
       }).join('') + '</div></div><div id="list">' + skRows(3, false) + '</div>');
     on('[data-tab]', 'click', function (e) { go('reports', e.currentTarget.getAttribute('data-tab')); });
     api('/admin/reports?status=' + status).then(function (rows) {
-      if (!rows.length) { $('#list').innerHTML = '<div class="card">' + (status === 'OPEN' ? empty('shield', 'No open reports', 'All caught up — the marketplace is looking clean.') : empty('inbox', 'Nothing here yet', 'No ' + status.toLowerCase() + ' reports.')) + '</div>'; return; }
+      if (!rows.length) { $('#list').innerHTML = '<div class="card">' + (status === 'OPEN' ? empty('shield', 'No open reports', 'All caught up - the marketplace is looking clean.') : empty('inbox', 'Nothing here yet', 'No ' + status.toLowerCase() + ' reports.')) + '</div>'; return; }
       $('#list').innerHTML = rows.map(function (r) {
         var p = r.preview || { title: '(deleted)' };
         var t = r.targetUser;
@@ -1035,7 +1143,7 @@ export const ADMIN_JS = `
           (t ? '<span>' + ic('alertc') + 'About <b style="color:var(--text)">' + esc(t.fullName) + '</b> · ' + esc(t.email) + ' · reported ' + esc(t.timesReported) + '×' + (t.banned ? ' · ' + badge('BANNED') : '') + '</span>' : '') + '</div>' +
           (status === 'OPEN' ? '<div class="report-actions"><input class="input note-in" placeholder="Add a note for the record (optional)"><button class="btn btn-ghost btn-sm" data-act="dismiss">' + ic('x') + ' Dismiss</button>' +
             (canRemove ? '<button class="btn btn-danger btn-sm" data-act="remove_content">' + ic('trash') + ' Remove content</button>' : '') +
-            '<button class="btn btn-danger btn-sm" data-act="suspend_store">' + ic('pause') + ' Suspend store</button>' + (t && !t.banned ? '<button class="btn btn-danger btn-sm" data-act="ban_user">' + ic('ban') + ' Ban user</button>' : '') + '</div>'
+            (t && t.hasStore ? '<button class="btn btn-danger btn-sm" data-act="suspend_store">' + ic('pause') + ' Suspend store</button>' : '') + (t && !t.banned ? '<button class="btn btn-danger btn-sm" data-act="ban_user">' + ic('ban') + ' Ban user</button>' : '') + '</div>'
             : (r.resolutionNote ? '<div class="report-actions"><span class="hint" style="margin:0">' + ic('check') + ' <b>Decision:</b> ' + esc(r.resolutionNote) + '</span></div>' : '')) + '</div>';
       }).join('');
       on('[data-act]', 'click', function (e) {
@@ -1076,11 +1184,12 @@ export const ADMIN_JS = `
     $('#list').innerHTML = '<div class="card table-wrap"><table class="table"><thead><tr><th>User</th><th class="hide-sm">Contact</th><th>Role</th><th class="hide-sm">Store</th><th class="hide-sm">Joined</th><th>Status</th><th></th></tr></thead><tbody>' +
       rows.map(function (u) {
         var r = ROLE[u.role] || ['b-grey', u.role];
-        return '<tr><td><div class="person">' + av(u.fullName) + '<div style="min-width:0"><b>' + esc(u.fullName) + '</b><div class="sub">' + esc(u.city || '—') + '</div></div></div></td>' +
+        return '<tr><td><div class="person">' + av(u.fullName) + '<div style="min-width:0"><b>' + esc(u.fullName) + '</b><div class="sub">' + esc(u.city || '-') + '</div></div></div></td>' +
           '<td class="hide-sm">' + esc(u.email) + (u.emailVerified ? ' <span title="Email verified" style="color:var(--ok)">' + ic('okc') + '</span>' : ' <span class="badge b-grey" style="font-size:10.5px;padding:1px 7px">Unverified</span>') + '<div class="sub">' + esc(u.phone || '') + '</div></td>' +
-          '<td><span class="badge ' + r[0] + '">' + r[1] + '</span></td><td class="hide-sm">' + (u.storeName ? esc(u.storeName) + '<div style="margin-top:3px">' + badge(u.storeStatus) + '</div>' : '<span style="color:var(--faint)">—</span>') + '</td>' +
+          '<td><span class="badge ' + r[0] + '">' + r[1] + '</span></td><td class="hide-sm">' + (u.storeName ? esc(u.storeName) + '<div style="margin-top:3px">' + badge(u.storeStatus) + '</div>' : '<span style="color:var(--faint)">-</span>') + '</td>' +
           '<td class="hide-sm nowrap">' + esc(day(u.createdAt)) + '</td><td>' + (u.banned ? badge('BANNED') + (u.banReason ? '<div class="sub" style="max-width:180px">' + esc(u.banReason) + '</div>' : '') : badge('ACTIVE')) + '</td><td class="r">' +
-          (u.role === 'ADMIN' ? '' : u.banned ? '<button class="btn btn-ghost btn-sm" data-unban="' + esc(u.id) + '" data-name="' + esc(u.fullName) + '">' + ic('refresh') + ' Unban</button>' : '<button class="btn btn-danger btn-sm" data-ban="' + esc(u.id) + '" data-name="' + esc(u.fullName) + '">' + ic('ban') + ' Ban</button>') + '</td></tr>';
+          (u.role === 'ADMIN' ? '' : u.banned ? '<button class="btn btn-ghost btn-sm" data-unban="' + esc(u.id) + '" data-name="' + esc(u.fullName) + '">' + ic('refresh') + ' Unban</button>' : '<button class="btn btn-danger btn-sm" data-ban="' + esc(u.id) + '" data-name="' + esc(u.fullName) + '">' + ic('ban') + ' Ban</button>') +
+          (u.role === 'ADMIN' ? '' : ' <button class="btn btn-ghost btn-sm" data-del="' + esc(u.id) + '" data-name="' + esc(u.fullName) + '" data-store="' + esc(u.storeName || '') + '" title="Delete account">' + ic('trash') + ' Delete</button>') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     on('[data-ban]', 'click', function (e) {
       var b = e.currentTarget;
@@ -1088,6 +1197,15 @@ export const ADMIN_JS = `
         input: { label: 'Reason (kept on record)', placeholder: 'Why are you banning this user?', chips: ['Scam or fraud', 'Selling fake parts', 'Abusive behaviour', 'Spam'] }, confirm: 'Ban user', confirmClass: 'btn-primary' }).then(function (reason) {
         if (!reason) return;
         api('/admin/users/' + b.getAttribute('data-ban') + '/ban', { method: 'POST', body: { reason: reason } }).then(function () { toast(b.getAttribute('data-name') + ' has been banned.'); usersView(state.arg || ''); }).catch(function (err) { toast(err.message, 'bad'); });
+      });
+    });
+    on('[data-del]', 'click', function (e) {
+      var b = e.currentTarget, name = b.getAttribute('data-name'), store = b.getAttribute('data-store');
+      modal({ icon: 'trash', tone: 'bad', title: 'Delete ' + name + '’s account?',
+        text: 'This can’t be undone. Their personal details, documents, garage, cart and wishlist are erased' + (store ? ', and the store “' + store + '” is closed with its listings hidden' : '') + '. Past orders stay for the sellers’ records with their details removed. They get an email letting them know.',
+        input: { label: 'Reason (sent to the user and kept on record)', placeholder: 'Why is this account being deleted?', chips: ['Requested by the user', 'Fake or duplicate account', 'Scam or fraud', 'Repeated policy violations'] }, confirm: 'Delete account', confirmClass: 'btn-primary' }).then(function (reason) {
+        if (!reason) return;
+        api('/admin/users/' + b.getAttribute('data-del') + '/delete', { method: 'POST', body: { reason: reason } }).then(function () { toast(name + '’s account has been deleted.'); usersView(state.arg || ''); }).catch(function (err) { toast(err.message, 'bad'); });
       });
     });
     on('[data-unban]', 'click', function (e) {
@@ -1104,6 +1222,7 @@ export const ADMIN_JS = `
     var a = String(action || '');
     if (a.indexOf('login') >= 0) return ['login', 't-navy'];
     if (a.indexOf('view') >= 0 || a.indexOf('document') >= 0) return ['eye', 't-info'];
+    if (a === 'user_delete') return ['trash', 't-red'];
     if (a.indexOf('approve') >= 0 || a.indexOf('unban') >= 0) return ['check', 't-ok'];
     if (a.indexOf('service') >= 0) return ['tool', 't-info'];
     if (a.indexOf('ban') >= 0) return ['ban', 't-red'];
@@ -1162,6 +1281,29 @@ export const ADMIN_JS = `
   function section(id, icon, tone, title, sub, body, foot, cls) {
     return '<form class="card set-sec' + (cls ? ' ' + cls : '') + '" id="' + id + '" novalidate><div class="sh"><div class="tile ' + tone + '">' + ic(icon) + '</div><div><h3>' + esc(title) + '</h3><p>' + esc(sub) + '</p></div></div><div class="sb">' + body + '<div class="msg"></div></div><div class="sf">' + foot + '</div></form>';
   }
+  function loadSessions() {
+    var el = $('#sess-list'); if (!el) return;
+    api('/admin/account/sessions').then(function (rows) {
+      if (!el.isConnected) return;
+      el.innerHTML = rows.length ? rows.map(function (s) {
+        var where = [s.location, s.ip].filter(Boolean).join(' · ');
+        return '<div class="sess"><div class="tile ' + (s.current ? 't-ok' : 't-navy') + '" style="width:40px;height:40px;border-radius:12px;flex:none">' + ic(s.device.mobile ? 'phone' : 'monitor') + '</div>' +
+          '<div class="grow"><b>' + esc(s.device.label) + (s.current ? '<span class="badge b-ok">This device</span>' : '') + '</b>' + (where ? '<small>' + esc(where) + '</small>' : '') +
+          '<small>Signed in ' + esc(ago(s.createdAt)) + (s.current ? '' : ' · Last active ' + esc(ago(s.lastSeenAt))) + '</small></div>' +
+          (s.current ? '' : '<button class="btn btn-ghost btn-sm" data-end="' + esc(s.id) + '">' + ic('logout') + ' Sign out</button>') + '</div>';
+      }).join('') : empty('monitor', 'No other devices', 'Only this browser is signed in.');
+      el.querySelectorAll('[data-end]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          modal({ icon: 'logout', tone: 'bad', title: 'Sign out this device?', text: 'It will need the password and an authenticator code to sign in again.', confirm: 'Sign out device', confirmClass: 'btn-primary' }).then(function (ok) {
+            if (!ok) return;
+            api('/admin/account/sessions/' + encodeURIComponent(b.getAttribute('data-end')), { method: 'DELETE' })
+              .then(function () { toast('Device signed out.'); loadSessions(); })
+              .catch(function (err) { toast(err.message, 'bad'); loadSessions(); });
+          });
+        });
+      });
+    }).catch(function (err) { if (el.isConnected) el.innerHTML = errBox(err.message); });
+  }
   function settingsView() {
     shell(pageHead('Settings', 'Manage your admin account and security.') + '<div class="settings"><div class="sk" style="height:220px;border-radius:14px"></div><div class="sk" style="height:420px;border-radius:18px"></div></div>');
     api('/admin/account').then(function (me) {
@@ -1178,17 +1320,20 @@ export const ADMIN_JS = `
           '<div class="hint">Admin since ' + esc(day(me.createdAt)) + (me.totpEnabledAt ? ' · Two-step sign-in on since ' + esc(day(me.totpEnabledAt)) : '') + '</div>',
           '<button class="btn btn-navy">' + ic('check') + ' Save changes</button>') +
         section('f-password', 'lock', 't-navy', 'Change password', 'Use at least 10 characters. Other admin sessions are signed out.',
-          pwField('currentPassword', 'Current password', 'current-password') + '<div class="row2"><div>' + pwField('newPassword', 'New password', 'new-password', ' minlength="10"') + '<div class="meter" id="meter"><i></i><i></i><i></i><i></i></div></div><div>' + pwField('repeat', 'Repeat new password', 'new-password') + '</div></div>' + codeField('code'),
+          pwField('currentPassword', 'Current password', 'current-password') + '<div class="row2"><div>' + pwField('newPassword', 'New password', 'new-password', ' minlength="10"') + '<div class="meter" id="meter"><i></i><i></i><i></i><i></i></div></div><div>' + pwField('repeat', 'Repeat new password', 'new-password') + '</div></div>',
           '<span class="hint">You’ll stay signed in on this device.</span><button class="btn btn-navy">' + ic('key') + ' Change password</button>') +
         section('f-email', 'mail', 't-info', 'Change sign-in email', 'A notice is sent to your current email address.',
-          '<div class="field"><label>New email</label><div class="input-icon">' + ic('mail') + '<input class="input" type="email" name="newEmail" placeholder="name@autoguide.lk" required></div></div><div class="row2"><div>' + pwField('password', 'Current password', 'current-password') + '</div><div>' + codeField('code') + '</div></div>',
+          '<div class="row2"><div class="field"><label>New email</label><div class="input-icon">' + ic('mail') + '<input class="input" type="email" name="newEmail" placeholder="name@example.com" required></div></div><div>' + pwField('password', 'Current password', 'current-password') + '</div></div>',
           '<button class="btn btn-navy">' + ic('mail') + ' Change email</button>') +
         section('f-2fa', 'shield', 't-ok', 'Authenticator app', 'Moving to a new phone? Confirm with your password and current code, then scan the new QR code.',
-          '<div id="tfa-step"><div class="row2"><div>' + pwField('password', 'Current password', 'current-password') + '</div><div>' + codeField('code', 'Current authenticator code') + '</div></div></div>',
+          '<div id="tfa-step"><div class="row2"><div>' + pwField('password', 'Current password', 'current-password') + '</div><div></div></div></div>',
           '<button class="btn btn-navy" id="tfa-btn">' + ic('phone') + ' Set up new authenticator</button>') +
-        '<div class="card set-sec danger-zone" id="f-sessions"><div class="sh"><div class="tile t-red">' + ic('logout') + '</div><div><h3>Sign out everywhere</h3><p>Think someone else is signed in to your admin account? This ends every admin session, including this one.</p></div></div><div class="sf"><button class="btn btn-danger" id="logout-all">' + ic('logout') + ' Sign out of all sessions</button></div></div>' +
+        '<div class="card set-sec" id="f-sessions"><div class="sh"><div class="tile t-navy">' + ic('monitor') + '</div><div><h3>Signed-in devices</h3><p>Where your admin account is signed in right now. Sign out any device you don’t recognise.</p></div></div><div class="sb" id="sess-list">' + skInline(2) + '</div>' +
+          '<div class="sf"><span class="hint">Signing out everywhere includes this device.</span><button class="btn btn-danger" id="logout-all">' + ic('logout') + ' Sign out everywhere</button></div></div>' +
+        '<p class="hint" style="text-align:center;margin:22px 0 4px">© ' + new Date().getFullYear() + ' AutoGuide. All rights reserved. Developed by MonolythCode.</p>' +
         '</div></div>');
 
+      loadSessions();
       on('[data-theme-pick]', 'click', function (e) {
         var p = e.currentTarget.getAttribute('data-theme-pick');
         setTheme(p);
@@ -1217,20 +1362,21 @@ export const ADMIN_JS = `
         if (!fw.currentPassword.value) return formMsg(fw, 'Enter your current password.');
         if (fw.newPassword.value.length < 10) return formMsg(fw, 'The new password must be at least 10 characters.');
         if (fw.newPassword.value !== fw.repeat.value) return formMsg(fw, 'The new passwords don’t match.');
-        if (fw.code.value.length !== 6) return formMsg(fw, 'Enter the 6-digit code from your authenticator.');
-        var done = busy(fw.querySelector('.sf .btn'));
-        api('/admin/account/password', { method: 'POST', body: { currentPassword: fw.currentPassword.value, newPassword: fw.newPassword.value, code: fw.code.value.trim() } })
-          .then(function (r) { done(); newSession(r); fw.reset(); $('#meter').className = 'meter'; formMsg(fw, 'Password changed. Other sessions were signed out.', true); toast('Password changed.'); })
-          .catch(function (err) { done(); formMsg(fw, err.message); });
+        formMsg(fw, '');
+        askCode({ title: 'Confirm password change', confirm: 'Change password', run: function (code) {
+          return api('/admin/account/password', { method: 'POST', body: { currentPassword: fw.currentPassword.value, newPassword: fw.newPassword.value, code: code } });
+        } }).then(function (r) { if (!r) return; newSession(r); fw.reset(); $('#meter').className = 'meter'; formMsg(fw, 'Password changed. Other sessions were signed out.', true); toast('Password changed.'); })
+          .catch(function (err) { formMsg(fw, err.message); });
       });
       var fe = $('#f-email');
       fe.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (!fe.newEmail.value.trim() || !fe.password.value || fe.code.value.length !== 6) return formMsg(fe, 'Fill in the new email, your password and the 6-digit code.');
-        var done = busy(fe.querySelector('.sf .btn'));
-        api('/admin/account/email', { method: 'POST', body: { newEmail: fe.newEmail.value.trim(), password: fe.password.value, code: fe.code.value.trim() } })
-          .then(function (r) { newSession(r); state.admin.email = r.email; toast('Sign-in email changed to ' + r.email + '.'); settingsView(); })
-          .catch(function (err) { done(); formMsg(fe, err.message); });
+        if (!fe.newEmail.value.trim() || !fe.password.value) return formMsg(fe, 'Fill in the new email and your current password.');
+        formMsg(fe, '');
+        askCode({ title: 'Confirm email change', text: 'Enter the 6-digit code from your authenticator to change your sign-in email to ' + fe.newEmail.value.trim() + '.', confirm: 'Change email', run: function (code) {
+          return api('/admin/account/email', { method: 'POST', body: { newEmail: fe.newEmail.value.trim(), password: fe.password.value, code: code } });
+        } }).then(function (r) { if (!r) return; newSession(r); state.admin.email = r.email; toast('Sign-in email changed to ' + r.email + '.'); settingsView(); })
+          .catch(function (err) { formMsg(fe, err.message); });
       });
       var ft = $('#f-2fa');
       var confirming = false;
@@ -1238,15 +1384,18 @@ export const ADMIN_JS = `
         e.preventDefault();
         var btn = $('#tfa-btn');
         if (!confirming) {
-          if (!ft.password.value || ft.code.value.length !== 6) return formMsg(ft, 'Enter your password and current 6-digit code.');
-          var done = busy(btn);
-          api('/admin/account/2fa/start', { method: 'POST', body: { password: ft.password.value, code: ft.code.value.trim() } }).then(function (s) {
-            done(); confirming = true;
+          if (!ft.password.value) return formMsg(ft, 'Enter your current password.');
+          formMsg(ft, '');
+          askCode({ title: 'Confirm it’s you', text: 'Enter the 6-digit code from your CURRENT authenticator app.', confirm: 'Continue', run: function (code) {
+            return api('/admin/account/2fa/start', { method: 'POST', body: { password: ft.password.value, code: code } });
+          } }).then(function (s) {
+            if (!s) return;
+            confirming = true;
             $('#tfa-step').innerHTML = '<div style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center" class="tfa-grid"><div class="qr-box" style="margin:0">' + s.qrSvg + '</div><div><p style="margin:0 0 10px;color:var(--muted)">Scan with your new authenticator app, or enter this key:</p><div class="secret" style="text-align:left">' + esc(s.secret) + '</div>' + codeField('newcode', 'Code from the NEW authenticator') + '</div></div>';
             var nc = ft.newcode; nc.addEventListener('input', function () { nc.value = nc.value.replace(/[^0-9]/g, '').slice(0, 6); }); nc.focus();
             btn.innerHTML = ic('check') + ' Confirm new authenticator';
             formMsg(ft, '');
-          }).catch(function (err) { done(); formMsg(ft, err.message); });
+          }).catch(function (err) { formMsg(ft, err.message); });
         } else {
           if (ft.newcode.value.length !== 6) return formMsg(ft, 'Enter the 6-digit code from your new authenticator.');
           var done2 = busy(btn);
@@ -1256,13 +1405,28 @@ export const ADMIN_JS = `
         }
       });
       $('#logout-all').addEventListener('click', function () {
-        modal({ icon: 'logout', tone: 'bad', title: 'Sign out everywhere?', text: 'Every admin session ends, including this one. You’ll need your password and authenticator code to sign back in.', confirm: 'Sign out everywhere', confirmClass: 'btn-primary' }).then(function (ok) {
+        modal({ icon: 'logout', tone: 'bad', title: 'Sign out everywhere?', text: 'Every device is signed out, including this one. You’ll need your password and authenticator code to sign back in.', confirm: 'Sign out everywhere', confirmClass: 'btn-primary' }).then(function (ok) {
           if (!ok) return;
           api('/admin/account/logout-all', { method: 'POST', body: {} }).then(function () { signOut('Signed out of all sessions.'); }).catch(function (err) { toast(err.message, 'bad'); });
         });
       });
     }).catch(function (e) { shell(pageHead('Settings') + errBox(e.message)); });
   }
+
+  // ---------- session heartbeat ----------
+  // If this device is signed out from another one (Settings > Signed-in devices),
+  // notice it within ~20 s while the tab is open, and straight away when the
+  // tab comes back into view. Paused while the tab is hidden.
+  var lastBeat = 0;
+  function heartbeat(force) {
+    if (!state.token || document.hidden) return;
+    if (!force && Date.now() - lastBeat < 15000) return;
+    lastBeat = Date.now();
+    api('/admin/auth/me').catch(function () {});
+  }
+  setInterval(function () { heartbeat(false); }, 20000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) heartbeat(true); });
+  window.addEventListener('focus', function () { heartbeat(true); });
 
   // ---------- start ----------
   applyTheme();

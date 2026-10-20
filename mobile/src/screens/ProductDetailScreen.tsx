@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { ReportSheet, ReportTarget, reportStyles } from '../components/ReportSheet';
 import { shareProduct } from '../utils/share';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -58,7 +59,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   if (failed) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <BackFab onPress={() => navigation.goBack()} />
+        <BackFab onPress={() => goBackOr(navigation)} />
         <EmptyState icon="alert-circle-outline" title="Couldn’t load this part" actionLabel="Try again" onAction={load} />
       </View>
     );
@@ -153,7 +154,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
               />
             )}
           />
-          <BackFab onPress={() => navigation.goBack()} />
+          <BackFab onPress={() => goBackOr(navigation)} />
           <TouchableOpacity style={[styles.fab, { right: spacing.md + 52 }]} onPress={() => shareProduct(product)} accessibilityLabel="Share">
             <Ionicons name="share-social-outline" size={21} color={colors.ink} />
           </TouchableOpacity>
@@ -242,7 +243,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
               icon="cash-outline"
               text={
                 product.currency === 'USD'
-                  ? `Cash on delivery — paid in rupees at 1 USD = Rs. ${usdToLkr}`
+                  ? `Cash on delivery - paid in rupees at 1 USD = Rs. ${usdToLkr}`
                   : 'Cash on delivery available'
               }
             />
@@ -278,7 +279,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.askTitle}>Ask about this part</Text>
-              <Text style={styles.askSub}>Fitment, stock, warranty — chat privately with the seller in the app.</Text>
+              <Text style={styles.askSub}>Fitment, stock, warranty - chat privately with the seller in the app.</Text>
             </View>
             {busy === 'chat' ? <ActivityIndicator color={colors.accent} /> : <Ionicons name="chevron-forward" size={20} color={colors.textFaint} />}
           </TouchableOpacity>
@@ -305,7 +306,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
                   {f.make} {f.model}
                 </Text>
                 <Text style={styles.fitYears}>
-                  {f.yearFrom}–{f.yearTo}
+                  {f.yearFrom}-{f.yearTo}
                 </Text>
               </View>
             ))}

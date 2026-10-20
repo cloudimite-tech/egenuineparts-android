@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { colors, radius, themed } from '../theme/theme';
+import { SERVER_ORIGIN } from '../api/config';
+
+// The map page is loaded "from" our server so OpenStreetMap sees a real referrer.
+const MAP_BASE = `${SERVER_ORIGIN}/`;
 
 export type LatLng = { lat: number; lng: number };
 
@@ -15,7 +19,7 @@ interface Props {
   onTouchEnd?: () => void;
 }
 
-// OpenStreetMap (Leaflet) inside a WebView — no Google Maps API key needed.
+// OpenStreetMap (Leaflet) inside a WebView - no Google Maps API key needed.
 // Editable maps: tap or drag the pin to set the exact location.
 function html(editable: boolean) {
   return `<!doctype html><html><head>
@@ -27,7 +31,7 @@ function html(editable: boolean) {
 <script>
 var editable=${editable};
 var map=L.map('m',{zoomControl:true}).setView([7.8731,80.7718],7);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,referrerPolicy:'strict-origin-when-cross-origin',attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 var icon=L.divIcon({className:'',iconSize:[34,44],iconAnchor:[17,42],html:'<svg width="34" height="44" viewBox="0 0 34 44"><path d="M17 0C7.6 0 0 7.6 0 17c0 12.8 17 27 17 27s17-14.2 17-27C34 7.6 26.4 0 17 0z" fill="#E5120B"/><circle cx="17" cy="17" r="7" fill="#fff"/></svg>'});
 var pin=null,extra=null;
 function post(o){if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify(o));}
@@ -51,7 +55,7 @@ export function LocationMap({ value, onChange, secondary, height = 220, style, o
   const ref = useRef<WebView>(null);
   const ready = useRef(false);
   const fromMap = useRef<LatLng | null>(null);
-  const source = useMemo(() => ({ html: html(!!onChange), baseUrl: 'https://autoguide.lk/' }), [!!onChange]);
+  const source = useMemo(() => ({ html: html(!!onChange), baseUrl: MAP_BASE }), [!!onChange]);
 
   const push = () => {
     if (!ready.current) return;
@@ -88,7 +92,7 @@ export function LocationMap({ value, onChange, secondary, height = 220, style, o
           }
         }}
         // Keep the map self-contained: never navigate away inside it.
-        onShouldStartLoadWithRequest={(req) => req.url.startsWith('about:') || req.url.startsWith('https://autoguide.lk/')}
+        onShouldStartLoadWithRequest={(req) => req.url.startsWith('about:') || req.url.startsWith(MAP_BASE)}
       />
     </View>
   );

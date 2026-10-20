@@ -21,7 +21,7 @@ const ORANGE: Grad = ['#F24E1E', '#FF8A1F', '#FFB23F'];
 const DARK: Grad = ['#161314', '#231F20', '#5A5455'];
 const PURPLE: Grad = ['#231F20', '#7A2363', '#E5120B'];
 
-// Tag each product by why it's in the rail, not by the rail's mode —
+// Tag each product by why it's in the rail, not by the rail's mode -
 // a flash rail can be topped up with hot deals and best sellers.
 const tagFor = (p: Product) => (p.onSale ? 'FLASH DEAL' : discountPercent(p.price, p.compareAtPrice) ? 'HOT DEAL' : 'BEST SELLER');
 
@@ -34,7 +34,7 @@ const MODE_META: Record<Highlights['mode'], { overline: string; icon: keyof type
 
 // Always-on promo slides so the hero is never empty (and adds variety).
 const PROMOS: Slide[] = [
-  { key: 'promo-cod', kind: 'promo', colors: PURPLE, icon: 'cash-fast', title: 'Cash on delivery, island-wide', subtitle: 'Order today — pay when your parts arrive.', cta: 'Shop deals', target: 'deals' },
+  { key: 'promo-cod', kind: 'promo', colors: PURPLE, icon: 'cash-fast', title: 'Cash on delivery, island-wide', subtitle: 'Order today - pay when your parts arrive.', cta: 'Shop deals', target: 'deals' },
   { key: 'promo-sell', kind: 'promo', colors: DARK, icon: 'storefront-outline', title: 'Sell your parts on AutoGuide', subtitle: 'Verified stores reach buyers island-wide.', cta: 'Become a seller', target: 'sell' },
 ];
 

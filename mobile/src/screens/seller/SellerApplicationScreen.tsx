@@ -122,12 +122,12 @@ export function SellerApplicationScreen({ navigation }: Props) {
       if (seq !== geocodeSeq.current) return; // a newer search started
       if (data.length) {
         setPin({ lat: data[0].lat, lng: data[0].lng });
-        setMapNote(i === 0 ? 'Found your address — drag the pin to the exact shop entrance if needed.' : 'Showing your town — drag the pin to your exact shop location.');
+        setMapNote(i === 0 ? 'Found your address - drag the pin to the exact shop entrance if needed.' : 'Showing your town - drag the pin to your exact shop location.');
         setErrors((e) => ({ ...e, pin: '' }));
         return;
       }
     }
-    setMapNote('Couldn’t find that address on the map — tap the map or drag the pin to your shop.');
+    setMapNote('Couldn’t find that address on the map - tap the map or drag the pin to your shop.');
   };
 
   useEffect(() => {
@@ -227,11 +227,11 @@ export function SellerApplicationScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Header title="Seller application" subtitle="Reviewed by our team, usually within 1–2 working days." back />
+      <Header title="Seller application" subtitle="Reviewed by our team, usually within 1-2 working days." back />
       <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={{ padding: spacing.md, paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         <View style={styles.privacy}>
           <Ionicons name="lock-closed-outline" size={16} color={colors.link} />
-          <Text style={styles.privacyText}>Your NIC, certificate and selfie are only seen by our verification team — never by buyers.</Text>
+          <Text style={styles.privacyText}>Your NIC, certificate and selfie are only seen by our verification team - never by buyers.</Text>
         </View>
 
         <Card step={1} title="Your store" icon="storefront-outline">
@@ -249,8 +249,8 @@ export function SellerApplicationScreen({ navigation }: Props) {
             onChangeText={(t) => setNicNumber(t.replace(/[^0-9vVxX]/g, ''))}
             error={errors.nicNumber}
           />
-          <DocUploader kind="NIC_FRONT" title="NIC — front" hint="A clear photo, all four corners visible" value={nicFront} onChange={setNicFront} error={errors.nicFront} />
-          <DocUploader kind="NIC_BACK" title="NIC — back" hint="A clear photo, all four corners visible" value={nicBack} onChange={setNicBack} error={errors.nicBack} />
+          <DocUploader kind="NIC_FRONT" title="NIC - front" hint="A clear photo, all four corners visible" value={nicFront} onChange={setNicFront} error={errors.nicFront} />
+          <DocUploader kind="NIC_BACK" title="NIC - back" hint="A clear photo, all four corners visible" value={nicBack} onChange={setNicBack} error={errors.nicBack} />
         </Card>
 
         <Card step={3} title="Business registration" icon="document-text-outline">
@@ -274,7 +274,7 @@ export function SellerApplicationScreen({ navigation }: Props) {
               <DistrictSelect value={district} onChange={setDistrict} error={errors.district} />
             </View>
           </View>
-          <TextField label="Business phone" prefix="+94" keyboardType="phone-pad" placeholder="41 222 3344" value={phone} onChangeText={setPhone} error={errors.phone} hint="For our verification team only — not shown to buyers." />
+          <TextField label="Business phone" prefix="+94" keyboardType="phone-pad" placeholder="41 222 3344" value={phone} onChangeText={setPhone} error={errors.phone} hint="For our verification team only - not shown to buyers." />
 
           <Text style={styles.label}>Pin your shop on the map</Text>
           <LocationMap
@@ -291,7 +291,7 @@ export function SellerApplicationScreen({ navigation }: Props) {
             onTouchEnd={() => setScrollEnabled(true)}
           />
           <Text style={[styles.mapNote, !!errors.pin && { color: colors.accent }]}>
-            {errors.pin || mapNote || 'Type your address above and we’ll find it — or tap the map to drop the pin.'}
+            {errors.pin || mapNote || 'Type your address above and we’ll find it - or tap the map to drop the pin.'}
           </Text>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <TouchableOpacity style={styles.mapBtn} onPress={useMyLocation} disabled={locating}>

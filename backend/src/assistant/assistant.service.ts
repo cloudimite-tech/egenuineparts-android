@@ -5,7 +5,7 @@ import { categories, orders } from '../db/schema';
 import { ProductsService } from '../products/products.service';
 import { JwtUser } from '../common/decorators/current-user.decorator';
 
-// A lightweight, rule-based shopping assistant — no external AI service,
+// A lightweight, rule-based shopping assistant - no external AI service,
 // no API keys, no per-message cost. It understands a handful of intents and
 // otherwise treats the message as a parts search.
 
@@ -85,7 +85,7 @@ export class AssistantService {
     if (!text || has(lower, 'hi', 'hello', 'hey', 'ayubowan', 'good morning', 'good evening') && lower.split(/\s+/).length <= 4) {
       return {
         reply:
-          "Hi! I’m the AutoGuide assistant. Tell me the part you need — like “brake pads for Axio 2016” — or ask about orders, delivery or selling.",
+          "Hi! I’m the AutoGuide assistant. Tell me the part you need - like “brake pads for Axio 2016” - or ask about orders, delivery or selling.",
         quickReplies: ['Brake pads for Axio 2016', 'Show today’s deals', 'Track my order', 'How do I sell?'],
       };
     }
@@ -97,7 +97,7 @@ export class AssistantService {
     if (has(lower, 'sell', 'seller', 'open a store', 'open store', 'my shop', 'list my', 'become a')) {
       return {
         reply:
-          'Selling on AutoGuide is free, and every store is verified. Tap Account → Become a seller and add your NIC, Business Registration (BR) certificate, shop location and a selfie at your shop. Once our team approves you (usually within 1–2 working days), list parts with photos, price, stock and the vehicles they fit. Buyers pay cash on delivery and you manage everything from the Seller Centre.',
+          'Selling on AutoGuide is free, and every store is verified. Tap Account → Become a seller and add your NIC, Business Registration (BR) certificate, shop location and a selfie at your shop. Once our team approves you (usually within 1-2 working days), list parts with photos, price, stock and the vehicles they fit. Buyers pay cash on delivery and you manage everything from the Seller Centre.',
         action: guest ? { type: 'sign_in', label: 'Create an account' } : { type: 'open_sell', label: 'Become a seller' },
         quickReplies: ['How does delivery work?', 'How do payments work?'],
       };
@@ -106,7 +106,7 @@ export class AssistantService {
     if (has(lower, 'pay', 'payment', 'cash', 'cod', 'card', 'bank')) {
       return {
         reply:
-          'Payment is cash on delivery — you pay the courier when your parts arrive. Card and online payments are coming soon.',
+          'Payment is cash on delivery - you pay the courier when your parts arrive. Card and online payments are coming soon.',
         quickReplies: ['How does delivery work?', 'Returns & warranty'],
       };
     }
@@ -114,7 +114,7 @@ export class AssistantService {
     if (has(lower, 'deliver', 'delivery', 'shipping', 'ship', 'courier', 'how long')) {
       return {
         reply:
-          'We deliver island-wide. Delivery is Rs. 450 per seller in your order, and most sellers ship within 1–2 days; delivery usually takes 2–5 working days depending on your area. You can follow each seller’s shipment in My orders.',
+          'We deliver island-wide. Delivery is Rs. 450 per seller in your order, and most sellers ship within 1-2 days; delivery usually takes 2-5 working days depending on your area. You can follow each seller’s shipment in My orders.',
         quickReplies: ['Track my order', 'How do payments work?'],
       };
     }
@@ -122,7 +122,7 @@ export class AssistantService {
     if (has(lower, 'return', 'refund', 'warranty', 'guarantee', 'exchange')) {
       return {
         reply:
-          'Each store sets its own returns policy and each part shows its warranty — you’ll find both on the product page under Specifications. Not sure a part fits? Tap “Ask about this part” to chat with the seller before you buy.',
+          'Each store sets its own returns policy and each part shows its warranty - you’ll find both on the product page under Specifications. Not sure a part fits? Tap “Ask about this part” to chat with the seller before you buy.',
         quickReplies: ['How do I check fitment?', 'Track my order'],
       };
     }
@@ -138,7 +138,7 @@ export class AssistantService {
     if (has(lower, 'whatsapp', 'phone number', 'seller.s number', 'seller.s phone', 'contact the seller', 'contact seller', 'call the seller', 'call seller')) {
       return {
         reply:
-          'To keep every order protected, all conversations with sellers happen in the app chat — phone numbers and links can’t be shared there. Open any part and tap “Chat” to message its seller.',
+          'To keep every order protected, all conversations with sellers happen in the app chat - phone numbers and links can’t be shared there. Open any part and tap “Chat” to message its seller.',
       };
     }
 
@@ -147,11 +147,11 @@ export class AssistantService {
       return {
         reply:
           h.mode === 'flash'
-            ? `There’s a Flash Sale on right now — ${h.subtitle.toLowerCase()}. Here are the parts on sale:`
+            ? `There’s a Flash Sale on right now - ${h.subtitle.toLowerCase()}. Here are the parts on sale:`
             : h.mode === 'deals'
-              ? `No flash sale right now, but these parts are discounted — ${h.subtitle.toLowerCase()}:`
+              ? `No flash sale right now, but these parts are discounted - ${h.subtitle.toLowerCase()}:`
               : `No sales running right now. Here are our ${h.title.toLowerCase()}:`,
-        // Only the genuinely discounted items — the flash rail may be
+        // Only the genuinely discounted items - the flash rail may be
         // topped up with best sellers, which aren't "on sale".
         products: (h.mode === 'flash' ? h.products.filter((p) => p.onSale) : h.products).slice(0, 6),
         action: { type: 'open_deals', label: 'See all deals' },
@@ -161,7 +161,7 @@ export class AssistantService {
     if (has(lower, 'human', 'agent', 'customer support', 'support team', 'complain', 'complaint', 'talk to someone')) {
       return {
         reply:
-          'I can help with finding parts, orders, delivery and payments. For anything else, email support@autoguide.lk and our team will reply within a day.',
+          'I can help with finding parts, orders, delivery and payments. For anything else, email support@monolythcode.com and our team will reply within a day.',
         quickReplies: ['Track my order', 'How does delivery work?'],
       };
     }
@@ -192,7 +192,7 @@ export class AssistantService {
     const lines = recent.map((o) => {
       const first = o.items[0]?.product.title ?? 'Order';
       const more = o.items.length > 1 ? ` + ${o.items.length - 1} more` : '';
-      return `• GP-${o.id.slice(-6).toUpperCase()} — ${first}${more}: ${label[o.status] ?? o.status.toLowerCase()}`;
+      return `• GP-${o.id.slice(-6).toUpperCase()} - ${first}${more}: ${label[o.status] ?? o.status.toLowerCase()}`;
     });
     return {
       reply: `Here are your latest orders:\n${lines.join('\n')}`,
@@ -259,7 +259,7 @@ export class AssistantService {
     if (!terms.size && !partNo) {
       return {
         reply: vehicle?.model
-          ? `Got it — ${cap(vehicle.make)} ${cap(vehicle.model)}${vehicle.year ? ` ${vehicle.year}` : ''}. Which part do you need? For example brake pads, oil filter or spark plugs.`
+          ? `Got it - ${cap(vehicle.make)} ${cap(vehicle.model)}${vehicle.year ? ` ${vehicle.year}` : ''}. Which part do you need? For example brake pads, oil filter or spark plugs.`
           : 'Which part are you looking for? You can also give me a part number.',
         quickReplies: ['Brake pads', 'Oil filter', 'Engine oil', 'Spark plugs'],
       };
@@ -269,14 +269,14 @@ export class AssistantService {
       const cats = await db.select({ name: categories.name, parentId: categories.parentId }).from(categories);
       const suggestions = cats.filter((c) => c.parentId).map((c) => c.name).slice(0, 4);
       return {
-        reply: `I couldn’t find a listing matching “${text}”${vLabel} yet. Try a different word, a part number, or browse Categories — new parts are added by sellers every day.`,
+        reply: `I couldn’t find a listing matching “${text}”${vLabel} yet. Try a different word, a part number, or browse Categories - new parts are added by sellers every day.`,
         quickReplies: suggestions,
       };
     }
 
     const top = scored.slice(0, 6).map((x) => x.p);
     return {
-      reply: `I found ${scored.length} part${scored.length === 1 ? '' : 's'}${vLabel}${scored.length > 6 ? ' — here are the best matches' : ''}:`,
+      reply: `I found ${scored.length} part${scored.length === 1 ? '' : 's'}${vLabel}${scored.length > 6 ? ' - here are the best matches' : ''}:`,
       products: top,
       action: vehicle?.model ? undefined : { type: 'set_vehicle', label: 'Add my vehicle for exact fitment' },
     };

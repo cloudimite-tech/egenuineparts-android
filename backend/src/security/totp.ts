@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
 // RFC 6238 time-based one-time passwords (Google Authenticator, Microsoft
-// Authenticator, Authy…) — used for the admin panel's two-step login.
+// Authenticator, Authy…) - used for the admin panel's two-step login.
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 export function base32Encode(buf: Buffer) {

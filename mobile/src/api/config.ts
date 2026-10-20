@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // Where the API lives, in priority order:
-//  1. EXPO_PUBLIC_API_URL (e.g. https://api.autoguide.lk) — set this for
+//  1. EXPO_PUBLIC_API_URL (e.g. https://api.example.com) - set this for
 //     staging/production builds.
 //  2. The same machine that's serving the Expo bundle. Expo already knows
 //     that host (e.g. 192.168.1.152), and it's reachable from the Android
@@ -23,7 +23,7 @@ export const SERVER_ORIGIN = resolveOrigin();
 export const API_BASE_URL = `${SERVER_ORIGIN}/api`;
 export const SOCKET_URL = `${SERVER_ORIGIN}/chat`;
 
-// Uploaded photos come back as "/uploads/abc.jpg" — prefix with the server.
+// Uploaded photos come back as "/uploads/abc.jpg" - prefix with the server.
 export function resolveImageUrl(url?: string | null) {
   if (!url) return null;
   return /^https?:\/\//.test(url) ? url : `${SERVER_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;

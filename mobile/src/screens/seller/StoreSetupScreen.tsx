@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { goBackOr } from '../../navigation/goBackOr';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,7 +66,7 @@ export function StoreSetupScreen({ route, navigation }: Props) {
       if (mode === 'edit') {
         await apiClient.patch('/stores/me', body);
         toast.success('Store updated');
-        navigation.goBack();
+        goBackOr(navigation);
       } else {
         await apiClient.post('/stores', body);
         await useAuthStore.getState().refreshProfile();
@@ -101,7 +102,7 @@ export function StoreSetupScreen({ route, navigation }: Props) {
               label="About your store"
               optional
               multiline
-              placeholder="What you specialise in — e.g. genuine Toyota & Honda parts since 2019."
+              placeholder="What you specialise in - e.g. genuine Toyota & Honda parts since 2019."
               value={bio}
               onChangeText={setBio}
               maxLength={300}
@@ -112,7 +113,7 @@ export function StoreSetupScreen({ route, navigation }: Props) {
           <View style={styles.note}>
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.info} />
             <Text style={styles.noteText}>
-              Don’t add phone numbers, emails or social links to your store — buyers contact you through AutoGuide chat, and delivery details arrive with each order.
+              Don’t add phone numbers, emails or social links to your store - buyers contact you through AutoGuide chat, and delivery details arrive with each order.
             </Text>
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}

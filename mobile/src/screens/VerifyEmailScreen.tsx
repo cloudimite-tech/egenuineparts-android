@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { leaveAuth } from '../navigation/leaveAuth';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,9 +38,9 @@ export function VerifyEmailScreen({ route, navigation }: Props) {
     setLoading(true);
     try {
       await verifyEmail(email, value);
-      toast.success('Email verified — welcome to AutoGuide!');
+      toast.success('Email verified - welcome to AutoGuide!');
       // Seller accounts switch to the seller application automatically.
-      navigation.canGoBack() ? navigation.popToTop() : navigation.navigate('Main');
+      leaveAuth(navigation, 'top');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -90,6 +91,22 @@ export function VerifyEmailScreen({ route, navigation }: Props) {
             {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
           </Text>
         </TouchableOpacity>
+        <View style={styles.wrong}>
+          <Text style={styles.wrongText}>Wrong email address?</Text>
+          <TouchableOpacity
+            hitSlop={8}
+            onPress={() => {
+              // Back to the filled-in sign-up form if we came from it, otherwise a fresh one.
+              const routes = navigation.getState()?.routes ?? [];
+              const prev = routes[routes.length - 2];
+              if (prev?.name === 'Signup') navigation.goBack();
+              else navigation.navigate('Signup');
+            }}
+          >
+            <Text style={styles.wrongLink}>Fix it and sign up again</Text>
+          </TouchableOpacity>
+          <Text style={styles.wrongHint}>Your details aren’t kept until the email is verified, so you can use the same mobile number.</Text>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -99,4 +116,8 @@ const styles = themed(() => StyleSheet.create({
   icon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.navySoft, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: spacing.md },
   title: { fontSize: 22, fontWeight: '900', textAlign: 'center' },
   text: { color: colors.textMuted, textAlign: 'center', marginTop: 6, marginBottom: spacing.lg, lineHeight: 21 },
+  wrong: { alignItems: 'center', marginTop: spacing.xl, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.divider },
+  wrongText: { color: colors.textMuted, fontSize: 13.5 },
+  wrongLink: { color: colors.accent, fontWeight: '800', marginTop: 4, fontSize: 14.5 },
+  wrongHint: { color: colors.textFaint, fontSize: 12, textAlign: 'center', marginTop: 8, lineHeight: 17 },
 }));

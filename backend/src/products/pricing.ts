@@ -46,7 +46,7 @@ export function presentPrice<T extends Priced>(p: T) {
     rawSaleEndsAt: p.saleEndsAt ?? null,
     onSale: active,
     currency: (p.currency ?? 'LKR') as Currency,
-    // What this costs in rupees right now — used for totals, filters, sorting.
+    // What this costs in rupees right now - used for totals, filters, sorting.
     priceLkr: toLkr(active ? String(p.salePrice) : String(p.price), p.currency),
   };
 }

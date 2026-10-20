@@ -4,13 +4,13 @@ import { formatPrice } from './format';
 
 // Public share links. They open a preview page (WhatsApp/Facebook show the
 // product card) with an "Open in the app" button, and are the only links
-// allowed inside buyer–seller chat.
+// allowed inside buyer-seller chat.
 export const productLink = (id: string) => `${SERVER_ORIGIN}/p/${id}`;
 export const storeLink = (slug: string) => `${SERVER_ORIGIN}/s/${slug}`;
 
 export async function shareProduct(p: { id: string; title: string; price: string | number; currency?: string }) {
   const url = productLink(p.id);
-  await Share.share({ message: `${p.title} – ${formatPrice(p.price, p.currency)} on AutoGuide\n${url}`, url, title: p.title }).catch(() => {});
+  await Share.share({ message: `${p.title} - ${formatPrice(p.price, p.currency)} on AutoGuide\n${url}`, url, title: p.title }).catch(() => {});
 }
 
 export async function shareStore(s: { slug: string; name: string }) {

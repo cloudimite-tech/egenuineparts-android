@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '../components/Themed';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -24,7 +25,7 @@ type Msg =
 
 const WELCOME: AssistantReply = {
   reply:
-    "Hi! I’m the AutoGuide assistant \u{1F44B}\nTell me the part you need — like “brake pads for Axio 2016” or a part number — and I’ll find it. I can also help with orders, delivery, payments and selling.",
+    "Hi! I’m the AutoGuide assistant \u{1F44B}\nTell me the part you need - like “brake pads for Axio 2016” or a part number - and I’ll find it. I can also help with orders, delivery, payments and selling.",
   quickReplies: ['Brake pads for Axio 2016', 'Show today’s deals', 'Track my order', 'How does delivery work?', 'How do I sell?'],
 };
 
@@ -96,7 +97,7 @@ export function AssistantScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <GradientHeader style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10}>
+        <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={10}>
           <Ionicons name="chevron-back" size={26} color={colors.white} />
         </TouchableOpacity>
         <View style={styles.botAvatar}>

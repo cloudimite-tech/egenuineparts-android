@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { goBackOr } from '../../navigation/goBackOr';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -94,7 +95,7 @@ export function ServiceDetailScreen({ route, navigation }: Props) {
               </View>
             </View>
           )}
-          <TouchableOpacity style={[styles.fab, { left: spacing.md }]} onPress={() => navigation.goBack()} accessibilityLabel="Back">
+          <TouchableOpacity style={[styles.fab, { left: spacing.md }]} onPress={() => goBackOr(navigation)} accessibilityLabel="Back">
             <Ionicons name="chevron-back" size={22} color={colors.ink} />
           </TouchableOpacity>
           {service.images.length > 1 ? (
@@ -143,7 +144,7 @@ export function ServiceDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.block}>
           <Text style={styles.h}>How booking works</Text>
-          <Step n={1} text="Ask any questions in the chat first — it stays private inside AutoGuide." />
+          <Step n={1} text="Ask any questions in the chat first - it stays private inside AutoGuide." />
           <Step n={2} text="Pick a day and time that suits you and send an appointment request." />
           <Step n={3} text="The provider accepts or suggests another time. You’ll see the shop address once it’s confirmed." />
         </View>

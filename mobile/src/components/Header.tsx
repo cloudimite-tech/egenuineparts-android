@@ -1,4 +1,5 @@
 import React from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,7 @@ export function Header({ title, subtitle, back, right, children, large }: Props)
     <GradientHeader style={styles.wrap}>
       <View style={styles.row}>
         {back ? (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={10}>
+          <TouchableOpacity onPress={() => goBackOr(navigation)} style={styles.backBtn} hitSlop={10}>
             <Ionicons name="chevron-back" size={24} color={colors.white} />
           </TouchableOpacity>
         ) : null}

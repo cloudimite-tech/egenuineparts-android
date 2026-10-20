@@ -1,4 +1,4 @@
-// Quick SMTP check — uses the same settings as the backend's MailService.
+// Quick SMTP check - uses the same settings as the backend's MailService.
 // Usage (from the backend folder):  node --env-file=.env scripts/test-smtp.js you@example.com
 const nodemailer = require('nodemailer');
 
@@ -29,7 +29,7 @@ const from = MAIL_FROM || `AutoGuide <${SMTP_USER}>`;
     console.error('✗ Failed:', e.message);
     if (/535|auth/i.test(e.message)) console.error('  → Wrong username/app password, wrong region host (smtp.zoho.com vs .in/.eu), or SMTP access is off for this Zoho account/plan.');
     if (/553|554|relay|sender/i.test(e.message)) console.error('  → MAIL_FROM must use the same address as SMTP_USER (or an alias set up on it in Zoho).');
-    if (/ETIMEDOUT|ECONNREFUSED|ENOTFOUND/i.test(e.message)) console.error('  → Cannot reach the server — check SMTP_HOST/SMTP_PORT, or your network blocks port 465 (try SMTP_PORT=587).');
+    if (/ETIMEDOUT|ECONNREFUSED|ENOTFOUND/i.test(e.message)) console.error('  → Cannot reach the server - check SMTP_HOST/SMTP_PORT, or your network blocks port 465 (try SMTP_PORT=587).');
     process.exit(1);
   }
 })();

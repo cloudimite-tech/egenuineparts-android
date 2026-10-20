@@ -1,4 +1,4 @@
-// Resets the database and loads demo data. DESTRUCTIVE — wipes real users
+// Resets the database and loads demo data. DESTRUCTIVE - wipes real users
 // and orders too. To only refresh categories on a live database, use
 //   npm run db:categories
 import 'dotenv/config';
@@ -41,22 +41,23 @@ async function main() {
 
   const passwordHash = await bcrypt.hash('password123', 10);
   type Addr = [line1: string, city: string, district: string];
+  const POSTAL: Record<string, string> = { Nugegoda: '10250', Maharagama: '10280', Kandy: '20000', 'Colombo 10': '01000', Galle: '80000' };
   const user = async (fullName: string, email: string, role: 'BUYER' | 'SELLER' | 'ADMIN', phone: string | null, addr?: Addr) =>
     (await db.insert(users).values({
       fullName, email, phone, passwordHash, role,
-      addressLine1: addr?.[0], city: addr?.[1], district: addr?.[2],
+      addressLine1: addr?.[0], city: addr?.[1], district: addr?.[2], postalCode: addr ? POSTAL[addr[1]] ?? null : null,
       emailVerifiedAt: new Date(), termsAcceptedAt: new Date(),
     }).returning())[0];
 
   // ---- people ----
-  const kasun = await user('Kasun Perera', 'buyer@autoguide.lk', 'BUYER', '+94771234567', ['42/3 High Level Road', 'Nugegoda', 'Colombo']);
+  const kasun = await user('Kasun Perera', 'buyer@example.com', 'BUYER', '+94771234567', ['42/3 High Level Road', 'Nugegoda', 'Colombo']);
   const rwan = await user('Rwan Silva', 'rwan@example.lk', 'BUYER', '+94772000001', ['18 Temple Road', 'Maharagama', 'Colombo']);
   const dilani = await user('Dilani Peiris', 'dilani@example.lk', 'BUYER', '+94772000002', ['7 Lake Drive', 'Kandy', 'Kandy']);
-  const cahOwner = await user('Colombo Auto Hub', 'seller@autoguide.lk', 'SELLER', '+94711234567', ['221 Panchikawatta Road', 'Colombo 10', 'Colombo']);
-  const kmsOwner = await user('Kandy Motor Spares', 'kandy@autoguide.lk', 'SELLER', '+94711000002', ['55 Peradeniya Road', 'Kandy', 'Kandy']);
-  const llcOwner = await user('Lanka Lube Centre', 'lubecentre@autoguide.lk', 'SELLER', '+94711000003', ['12 Stanley Thilakaratne Mw', 'Nugegoda', 'Colombo']);
-  const admin = await user('AutoGuide Admin', 'admin@autoguide.lk', 'ADMIN', null);
-  const applicant = await user('Nimal Fernando', 'newseller@autoguide.lk', 'SELLER', '+94711000004', ['88 Main Street', 'Galle', 'Galle']);
+  const cahOwner = await user('Colombo Auto Hub', 'seller@example.com', 'SELLER', '+94711234567', ['221 Panchikawatta Road', 'Colombo 10', 'Colombo']);
+  const kmsOwner = await user('Kandy Motor Spares', 'kandy@example.com', 'SELLER', '+94711000002', ['55 Peradeniya Road', 'Kandy', 'Kandy']);
+  const llcOwner = await user('Lanka Lube Centre', 'lubecentre@example.com', 'SELLER', '+94711000003', ['12 Stanley Thilakaratne Mw', 'Nugegoda', 'Colombo']);
+  const admin = await user('AutoGuide Admin', 'admin@example.com', 'ADMIN', null);
+  const applicant = await user('Nimal Fernando', 'newseller@example.com', 'SELLER', '+94711000004', ['88 Main Street', 'Galle', 'Galle']);
 
   await db.insert(vehicles).values([
     { userId: kasun.id, make: 'Toyota', model: 'Axio', year: 2016, engine: '1.5 L', chassisCode: 'NZE161', isDefault: true },
@@ -70,7 +71,7 @@ async function main() {
       `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850"><rect width="100%" height="100%" fill="#fffdf5"/>` +
       `<rect x="30" y="30" width="1140" height="790" fill="none" stroke="#231F20" stroke-width="6"/>` +
       `<text x="600" y="150" font-size="44" text-anchor="middle" font-family="serif" fill="#231F20">CERTIFICATE OF REGISTRATION</text>` +
-      `<text x="600" y="210" font-size="26" text-anchor="middle" font-family="serif">Business Names Ordinance (SAMPLE — demo data)</text>` +
+      `<text x="600" y="210" font-size="26" text-anchor="middle" font-family="serif">Business Names Ordinance (SAMPLE - demo data)</text>` +
       `<text x="600" y="380" font-size="40" text-anchor="middle" font-family="serif">${title}</text>` +
       `<text x="600" y="460" font-size="30" text-anchor="middle" font-family="monospace">Reg. No. ${br}</text></svg>`,
     )).jpeg({ quality: 80 }).toBuffer();
@@ -83,7 +84,7 @@ async function main() {
     sharp(Buffer.from(
       `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="630"><rect width="100%" height="100%" rx="30" fill="${bg}"/>` +
       lines.map((l, i) => `<text x="60" y="${140 + i * 90}" font-size="${i === 0 ? 48 : 38}" font-family="sans-serif" fill="#161314">${l}</text>`).join('') +
-      `<text x="60" y="580" font-size="28" font-family="sans-serif" fill="#B80D07">SAMPLE — demo data</text></svg>`,
+      `<text x="60" y="580" font-size="28" font-family="sans-serif" fill="#B80D07">SAMPLE - demo data</text></svg>`,
     )).jpeg({ quality: 80 }).toBuffer();
   const kycDocs = async (ownerId: string, name: string, nic: string, lat: number, lng: number) => {
     const put = async (kind: 'NIC_FRONT' | 'NIC_BACK' | 'SELFIE', data: Buffer, extra = {}) =>
@@ -91,7 +92,7 @@ async function main() {
     return {
       nicNumber: nic,
       nicFrontDocumentId: await put('NIC_FRONT', await card(['NATIONAL IDENTITY CARD', name, `No. ${nic}`], '#E8F0E3')),
-      nicBackDocumentId: await put('NIC_BACK', await card(['NIC — reverse side', 'Address on file'], '#E8F0E3')),
+      nicBackDocumentId: await put('NIC_BACK', await card(['NIC - reverse side', 'Address on file'], '#E8F0E3')),
       selfieDocumentId: await put('SELFIE', await card(['Selfie at the shop', name], '#FFECEA'), { capturedLat: lat + 0.0004, capturedLng: lng + 0.0003 }),
       latitude: lat,
       longitude: lng,
@@ -112,7 +113,7 @@ async function main() {
   const kms = await store(kmsOwner.id, 'Kandy Motor Spares', 'kandy-motor-spares',
     'Brake, suspension, gearbox and engine specialists for Japanese cars.', 'Kandy', '7 days, unused parts', 'KY/BN/2018/4411', 'Kandy', '791234567V', 7.2906, 80.6337);
   const llc = await store(llcOwner.id, 'Lanka Lube Centre', 'lanka-lube-centre',
-    'Lubricants, coolants, filters and accessories — Mobil, Castrol, Shell and more.', 'Nugegoda', '3 days, sealed only', 'WCP/2020/1187', 'Colombo', '199023456789', 6.8728, 79.8878);
+    'Lubricants, coolants, filters and accessories - Mobil, Castrol, Shell and more.', 'Nugegoda', '3 days, sealed only', 'WCP/2020/1187', 'Colombo', '199023456789', 6.8728, 79.8878);
 
   // A seller application waiting for the admin, to try the review flow.
   await db.insert(stores).values({
@@ -278,17 +279,17 @@ async function main() {
   const [sconv] = await db.insert(conversations).values({ serviceId: svcGarage.id, buyerId: kasun.id, storeId: cah.id, buyerLastReadAt: t(30) }).returning();
   const slot = new Date(Date.now() + 3 * 24 * 3600 * 1000); slot.setUTCHours(4, 30, 0, 0); // 10:00 in Sri Lanka
   await db.insert(appointments).values({ serviceId: svcGarage.id, storeId: cah.id, buyerId: kasun.id, conversationId: sconv.id, scheduledAt: slot, vehicle: 'Toyota Axio 2016', note: 'Front brakes squeal when stopping.' });
-  await db.insert(messages).values({ conversationId: sconv.id, senderId: kasun.id, body: '📅 Appointment request for brake & suspension repairs — Toyota Axio 2016. Front brakes squeal when stopping.', createdAt: t(30) });
+  await db.insert(messages).values({ conversationId: sconv.id, senderId: kasun.id, body: '📅 Appointment request for brake & suspension repairs - Toyota Axio 2016. Front brakes squeal when stopping.', createdAt: t(30) });
 
   const [{ n }] = await db.select({ n: sql<number>`count(*)` }).from(products);
   console.log(`\nSeeded ${n} products across 3 stores (4 on flash sale, 3 priced in USD).\n`);
   console.log('Accounts (password for all: password123)');
-  console.log('  Buyer   buyer@autoguide.lk       Kasun — has orders, chats, a garage and an appointment request');
-  console.log('  Seller  seller@autoguide.lk      Colombo Auto Hub — has a pending order to ship');
-  console.log('  Seller  kandy@autoguide.lk       Kandy Motor Spares');
-  console.log('  Seller  lubecentre@autoguide.lk  Lanka Lube Centre');
-  console.log('  Seller  newseller@autoguide.lk   Galle Auto Parts — application PENDING admin review');
-  console.log('  Admin   admin@autoguide.lk       web admin panel at /admin (sets up an authenticator app on first sign-in)');
+  console.log('  Buyer   buyer@example.com       Kasun - has orders, chats, a garage and an appointment request');
+  console.log('  Seller  seller@example.com      Colombo Auto Hub - has a pending order to ship');
+  console.log('  Seller  kandy@example.com       Kandy Motor Spares');
+  console.log('  Seller  lubecentre@example.com  Lanka Lube Centre');
+  console.log('  Seller  newseller@example.com   Galle Auto Parts - application PENDING admin review');
+  console.log('  Admin   admin@example.com       web admin panel at /admin (sets up an authenticator app on first sign-in)');
 }
 
 main()

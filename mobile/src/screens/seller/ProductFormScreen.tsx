@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { goBackOr } from '../../navigation/goBackOr';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +38,7 @@ async function uploadImage(localUri: string): Promise<string> {
   const ext = (name.split('.').pop() || 'jpg').toLowerCase();
   const form = new FormData();
   form.append('file', { uri: localUri, name, type: `image/${ext === 'jpg' ? 'jpeg' : ext}` } as any);
-  // fetch (not axios) — React Native's fetch handles multipart uploads natively.
+  // fetch (not axios) - React Native's fetch handles multipart uploads natively.
   const res = await fetch(`${API_BASE_URL}/uploads`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${getAuthToken()}` },
@@ -82,6 +83,32 @@ export function ProductFormScreen({ route, navigation }: Props) {
   const [existingSaleEnd, setExistingSaleEnd] = useState<string | null>(null);
   const [fitDraft, setFitDraft] = useState({ make: '', model: '', yearFrom: '', yearTo: '' });
   const [catOpen, setCatOpen] = useState(false);
+  // "My category isn't listed" request
+  const [reqOpen, setReqOpen] = useState(false);
+  const [reqName, setReqName] = useState('');
+  const [reqParent, setReqParent] = useState<string | null>(null);
+  const [reqNote, setReqNote] = useState('');
+  const [reqSaving, setReqSaving] = useState(false);
+
+  const sendCategoryRequest = async () => {
+    if (reqName.trim().length < 3) {
+      toast.info('Type the name of the category.');
+      return;
+    }
+    setReqSaving(true);
+    try {
+      await apiClient.post('/categories/requests', { name: reqName.trim(), parentId: reqParent ?? undefined, note: reqNote.trim() || undefined });
+      toast.success('Request sent. We’ll email you when it’s added.');
+      setReqOpen(false);
+      setReqName('');
+      setReqParent(null);
+      setReqNote('');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Couldn’t send the request.'));
+    } finally {
+      setReqSaving(false);
+    }
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -241,7 +268,7 @@ export function ProductFormScreen({ route, navigation }: Props) {
       if (editing) await apiClient.patch(`/products/${productId}`, body);
       else await apiClient.post('/products', body);
       toast.success(editing ? 'Listing updated' : 'Your part is live!');
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -331,7 +358,7 @@ export function ProductFormScreen({ route, navigation }: Props) {
             value={description}
             onChangeText={setDescription}
             maxLength={2000}
-            hint="Don’t include phone numbers or links — buyers can chat with you in the app."
+            hint="Don’t include phone numbers or links - buyers can chat with you in the app."
           />
         </Card>
 
@@ -346,7 +373,7 @@ export function ProductFormScreen({ route, navigation }: Props) {
                 onPress={() => {
                   if (c === currency) return;
                   setCurrency(c);
-                  // Different units — clear amounts rather than silently mis-pricing.
+                  // Different units - clear amounts rather than silently mis-pricing.
                   setPrice('');
                   setCompareAt('');
                   setSalePrice('');
@@ -446,7 +473,7 @@ export function ProductFormScreen({ route, navigation }: Props) {
               </Text>
               <Text style={styles.fitYears}>
                 {f.yearFrom}
-                {f.yearTo !== f.yearFrom ? `–${f.yearTo}` : ''}
+                {f.yearTo !== f.yearFrom ? `-${f.yearTo}` : ''}
               </Text>
               <TouchableOpacity onPress={() => setFitments((list) => list.filter((_, j) => j !== i))} hitSlop={8}>
                 <Ionicons name="close-circle" size={20} color={colors.textFaint} />
@@ -503,6 +530,42 @@ export function ProductFormScreen({ route, navigation }: Props) {
             </View>
           </View>
         ))}
+        <TouchableOpacity
+          style={styles.reqLink}
+          onPress={() => {
+            setCatOpen(false);
+            setTimeout(() => setReqOpen(true), 350);
+          }}
+        >
+          <Ionicons name="add-circle-outline" size={20} color={colors.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.reqLinkTitle}>Can’t find the right category?</Text>
+            <Text style={styles.reqLinkSub}>Ask us to add it - we’ll email you when it’s ready.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+        </TouchableOpacity>
+      </SheetModal>
+
+      <SheetModal
+        visible={reqOpen}
+        onClose={() => setReqOpen(false)}
+        title="Request a category"
+        footer={<Button title="Send request" icon="send" onPress={sendCategoryRequest} loading={reqSaving} />}
+      >
+        <Text style={styles.reqIntro}>Tell us what’s missing. Our team reviews requests and adds new categories - you can list your part under the closest category for now.</Text>
+        <TextField label="Category name" placeholder="e.g. Turbochargers" value={reqName} onChangeText={setReqName} maxLength={100} />
+        <Text style={styles.label}>Main group (optional)</Text>
+        <View style={[styles.catChips, { marginBottom: spacing.md }]}>
+          {categories.map((p) => {
+            const on = reqParent === p.id;
+            return (
+              <TouchableOpacity key={p.id} style={[styles.catChip, on && styles.catChipOn]} onPress={() => setReqParent(on ? null : p.id)}>
+                <Text style={[styles.catChipText, on && { color: colors.white }]}>{p.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <TextField label="Anything else?" optional placeholder="What kind of parts go here" value={reqNote} onChangeText={setReqNote} multiline maxLength={500} />
       </SheetModal>
     </KeyboardAvoidingView>
   );
@@ -583,4 +646,8 @@ const styles = themed(() => StyleSheet.create({
   catChip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
   catChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
   catChipText: { fontWeight: '600', color: colors.text },
+  reqLink: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border, marginTop: spacing.xs },
+  reqLinkTitle: { fontWeight: '700', color: colors.text, fontSize: 14.5 },
+  reqLinkSub: { color: colors.textMuted, fontSize: 12.5, marginTop: 2 },
+  reqIntro: { color: colors.textMuted, fontSize: 13.5, lineHeight: 19, marginBottom: spacing.md },
 }));

@@ -14,7 +14,7 @@ function throttle(userId: string) {
   const now = Date.now();
   const hits = (recent.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
   if (hits.length >= MAX_PER_WINDOW) {
-    throw new HttpException('Too many uploads — please try again later.', HttpStatus.TOO_MANY_REQUESTS);
+    throw new HttpException('Too many uploads - please try again later.', HttpStatus.TOO_MANY_REQUESTS);
   }
   hits.push(now);
   recent.set(userId, hits);

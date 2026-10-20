@@ -1,6 +1,6 @@
 // Keeps every buyer <-> seller conversation inside the app: blocks phone
 // numbers, emails, links, messaging-app handles and "contact me outside"
-// requests (English, Sinhala, Tamil and Singlish) — including the usual
+// requests (English, Sinhala, Tamil and Singlish) - including the usual
 // tricks: spelled-out or Sinhala/Tamil digit words, letter-for-digit swaps
 // (O for 0, l for 1), fancy Unicode digits, invisible characters, and
 // numbers split across several messages. Part numbers (e.g. "90915-10003",
@@ -25,8 +25,8 @@ const WORD_RE = new RegExp(
   'giu',
 );
 
-// Sri Lankan mobiles (07X XXX XXXX, with or without +94/94/0094) — the real
-// WhatsApp vector — are always blocked. Landlines (0XX XXX XXXX) only when
+// Sri Lankan mobiles (07X XXX XXXX, with or without +94/94/0094) - the real
+// WhatsApp vector - are always blocked. Landlines (0XX XXX XXXX) only when
 // written with the country code, because a bare "0XXXX-XXXXX" is very often
 // a Toyota/Nissan part number (e.g. 04465-12592).
 const SL_MOBILE = /(?:\+?94|0094|0)7\d{8}(?!\d)/;

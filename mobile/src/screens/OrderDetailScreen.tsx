@@ -12,6 +12,7 @@ import { Header } from '../components/Header';
 import { StatusPill } from '../components/StatusPill';
 import { ProductImage } from '../components/ProductImage';
 import { Button } from '../components/Button';
+import { ReportSheet, ReportTarget, reportStyles } from '../components/ReportSheet';
 import { useCartStore } from '../store/cartStore';
 import { toast } from '../store/toastStore';
 import { errorMessage } from '../utils/useRequireAccount';
@@ -30,6 +31,7 @@ export function OrderDetailScreen({ route, navigation }: Props) {
   const [order, setOrder] = useState<Order | null>(null);
   const [reviewed, setReviewed] = useState<string[]>([]);
   const [cancelling, setCancelling] = useState(false);
+  const [report, setReport] = useState<ReportTarget | null>(null);
 
   const load = useCallback(() => {
     apiClient.get<Order>(`/orders/${orderId}`).then((r) => setOrder(r.data)).catch(() => {});
@@ -46,7 +48,7 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  // Group lines by store — each store ships its part of the order separately.
+  // Group lines by store - each store ships its part of the order separately.
   const groups = Object.values(
     order.items.reduce<Record<string, { store: OrderItem['store']; items: OrderItem[] }>>((acc, item) => {
       (acc[item.store.id] ??= { store: item.store, items: [] }).items.push(item);
@@ -162,6 +164,10 @@ export function OrderDetailScreen({ route, navigation }: Props) {
                   </View>
                 </View>
               ))}
+              <TouchableOpacity style={reportStyles.link} onPress={() => setReport({ type: 'STORE', id: store.id, label: 'seller', context: `Order ${orderNumber(order.id)}` })}>
+                <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+                <Text style={reportStyles.linkText}>Report this seller</Text>
+              </TouchableOpacity>
             </View>
           );
         })}
@@ -173,6 +179,7 @@ export function OrderDetailScreen({ route, navigation }: Props) {
           <Text style={styles.addr}>
             {order.city}
             {order.district ? `, ${order.district}` : ''}
+            {order.postalCode ? ` ${order.postalCode}` : ''}
           </Text>
           {order.contactPhone ? <Text style={[styles.muted, { marginTop: 4 }]}>{order.contactPhone}</Text> : null}
         </View>
@@ -188,6 +195,7 @@ export function OrderDetailScreen({ route, navigation }: Props) {
           <Button title="Cancel order" variant="ghost" onPress={cancel} loading={cancelling} />
         ) : null}
       </ScrollView>
+      <ReportSheet target={report} onClose={() => setReport(null)} />
     </View>
   );
 }

@@ -64,6 +64,7 @@ export class OrdersService {
           addressLine2: dto.addressLine2?.trim() || null,
           city: dto.city.trim(),
           district: dto.district?.trim() || null,
+          postalCode: dto.postalCode?.trim() || null,
           contactPhone: dto.contactPhone.trim(),
           paymentMethod: dto.paymentMethod ?? 'COD',
         })

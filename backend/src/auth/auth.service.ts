@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { releaseUnverified } from './unverified-signups';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { and, eq, isNull, sql } from 'drizzle-orm';
@@ -54,17 +55,13 @@ export class AuthService {
   async register(dto: RegisterDto, ip: string) {
     await hit(`register:${ip}`, 30, 3600, 'Too many sign-ups from this network. Please try again later.');
     const email = norm(dto.email);
-    const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
-    if (existing) {
-      throw new ConflictException(
-        existing.emailVerifiedAt
-          ? 'An account with this email already exists.'
-          : 'An account with this email already exists. Sign in to finish verifying it.',
-      );
-    }
-    if (await db.query.users.findFirst({ where: eq(users.phone, dto.phone) })) {
-      throw new ConflictException('This mobile number is already used by another account.');
-    }
+    // Only VERIFIED accounts own an email or mobile number. An unverified sign-up
+    // (wrong email typed, code never arrived) is replaced by this new one.
+    const byEmail = await db.query.users.findFirst({ where: eq(users.email, email) });
+    if (byEmail?.emailVerifiedAt || byEmail?.role === 'ADMIN') throw new ConflictException('An account with this email already exists.');
+    const byPhone = await db.query.users.findFirst({ where: eq(users.phone, dto.phone) });
+    if (byPhone?.emailVerifiedAt || byPhone?.role === 'ADMIN') throw new ConflictException('This mobile number is already used by another account.');
+    for (const old of [byEmail, byPhone]) if (old) await releaseUnverified(old);
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const [user] = await db
       .insert(users)
@@ -78,6 +75,7 @@ export class AuthService {
         addressLine2: dto.addressLine2?.trim() || null,
         city: dto.city.trim(),
         district: dto.district,
+        postalCode: dto.postalCode.trim(),
         termsAcceptedAt: new Date(),
       })
       .returning();
@@ -94,7 +92,7 @@ export class AuthService {
       await db.update(users).set({ emailVerifiedAt: new Date() }).where(eq(users.id, user.id));
       user.emailVerifiedAt = new Date();
     }
-    if (user.bannedAt) throw new ForbiddenException({ message: 'This account has been suspended. Contact support@autoguide.lk.', code: 'BANNED' });
+    if (user.bannedAt) throw new ForbiddenException({ message: 'This account has been suspended. Contact support@monolythcode.com.', code: 'BANNED' });
     return this.session(user);
   }
 
@@ -124,7 +122,7 @@ export class AuthService {
       throw new ForbiddenException({ message: 'Admin accounts sign in on the web admin panel, not in the app.', code: 'ADMIN_USE_WEB' });
     }
     if (user.bannedAt) {
-      throw new ForbiddenException({ message: 'This account has been suspended. Contact support@autoguide.lk.', code: 'BANNED' });
+      throw new ForbiddenException({ message: 'This account has been suspended. Contact support@monolythcode.com.', code: 'BANNED' });
     }
     if (!user.emailVerifiedAt) {
       const devCode = await this.sendCode(user, 'VERIFY_EMAIL');

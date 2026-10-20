@@ -19,7 +19,7 @@ import { durationLabel, priceRange } from '../../utils/services';
 type Props = NativeStackScreenProps<RootStackParamList, 'BookAppointment'>;
 
 const DAYS = 30;
-// 8:00 am – 6:00 pm in 30-minute steps.
+// 8:00 am - 6:00 pm in 30-minute steps.
 const SLOTS = Array.from({ length: 21 }, (_, i) => ({ h: 8 + Math.floor(i / 2), m: (i % 2) * 30 }));
 const MIN_NOTICE_MS = 45 * 60 * 1000;
 
@@ -57,7 +57,7 @@ export function BookAppointmentScreen({ route, navigation }: Props) {
     return d;
   };
   const free = SLOTS.filter((s) => at(s).getTime() > Date.now() + MIN_NOTICE_MS);
-  // Today may be fully past — jump to tomorrow automatically.
+  // Today may be fully past - jump to tomorrow automatically.
   useEffect(() => {
     if (dayIdx === 0 && free.length === 0) setDayIdx(1);
   }, []);
@@ -112,7 +112,7 @@ export function BookAppointmentScreen({ route, navigation }: Props) {
 
         <Text style={[styles.label, { marginTop: spacing.lg }]}>Time</Text>
         {free.length === 0 ? (
-          <Text style={styles.muted}>No times left today — pick another day.</Text>
+          <Text style={styles.muted}>No times left today - pick another day.</Text>
         ) : (
           <View style={styles.slots}>
             {SLOTS.map((s) => {
@@ -126,14 +126,14 @@ export function BookAppointmentScreen({ route, navigation }: Props) {
             })}
           </View>
         )}
-        <Text style={styles.muted}>This is a request — the provider confirms if they’re free, or you can agree another time in the chat.</Text>
+        <Text style={styles.muted}>This is a request - the provider confirms if they’re free, or you can agree another time in the chat.</Text>
 
         <View style={{ marginTop: spacing.lg }}>
           <TextField label="Vehicle" optional placeholder="e.g. Toyota Axio 2016" value={vehicle} onChangeText={setVehicle} maxLength={120} icon="car-sport-outline" />
           <TextField label="What do you need?" optional placeholder="Describe the problem or the work you want done" value={note} onChangeText={setNote} multiline maxLength={500} />
           <View style={styles.privacy}>
             <Ionicons name="shield-checkmark-outline" size={16} color={colors.info} />
-            <Text style={styles.privacyText}>Don’t add phone numbers or links — the provider replies in AutoGuide chat.</Text>
+            <Text style={styles.privacyText}>Don’t add phone numbers or links - the provider replies in AutoGuide chat.</Text>
           </View>
         </View>
       </ScrollView>

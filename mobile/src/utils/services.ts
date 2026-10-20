@@ -14,7 +14,7 @@ export function serviceIcon(name?: string | null): IconName {
 
 export function priceRange(from: number | null, to: number | null) {
   if (from == null) return 'Price on request';
-  if (to != null && to > from) return `${formatPrice(from)} – ${formatPrice(to)}`;
+  if (to != null && to > from) return `${formatPrice(from)} - ${formatPrice(to)}`;
   return `From ${formatPrice(from)}`;
 }
 

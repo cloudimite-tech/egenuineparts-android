@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Text } from '../components/Themed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -45,7 +46,7 @@ export function ChangeEmailScreen({ navigation }: Props) {
     try {
       await confirmEmailChange(code);
       toast.success('Email changed');
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (e) {
       setError(errorMessage(e));
     } finally {

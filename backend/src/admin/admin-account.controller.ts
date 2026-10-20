@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Get, HttpCode, Patch, Post, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Delete, Get, HttpCode, NotFoundException, Param, Patch, Post, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import * as bcrypt from 'bcryptjs';
@@ -14,6 +14,7 @@ import { newTotpSecret, otpauthUrl, verifyTotp } from '../security/totp';
 import { forgetSession } from '../security/session-check';
 import { MailService } from '../mail/mail.service';
 import { audit } from './audit';
+import { describeDevice, listAdminSessions, revokeAdminSession, revokeOtherAdminSessions } from '../security/admin-sessions';
 
 const SIX = /^\d{6}$/;
 const CODE_MSG = 'Enter the 6-digit code from your authenticator app.';
@@ -62,8 +63,9 @@ export class AdminAccountController {
     return u;
   }
 
-  private issue(u: { id: string; email: string }, tokenVersion: number) {
-    return this.jwt.sign({ sub: u.id, role: 'ADMIN', email: u.email, tv: tokenVersion, aud: 'admin' }, { expiresIn: '8h' });
+  // Fresh token for THIS device after a change that signs out the others.
+  private issue(u: { id: string; email: string }, tokenVersion: number, sid?: string) {
+    return this.jwt.sign({ sub: u.id, role: 'ADMIN', email: u.email, tv: tokenVersion, aud: 'admin', sid }, { expiresIn: '8h' });
   }
 
   @Get()
@@ -90,9 +92,10 @@ export class AdminAccountController {
       .where(eq(users.id, u.id))
       .returning({ tv: users.tokenVersion });
     forgetSession(u.id);
+    await revokeOtherAdminSessions(u.id, cu.sid ?? null);
     await audit(u.id, 'admin_password_changed');
     await this.mail.sendNotice(u.email, 'Admin password changed', 'The password for your AutoGuide admin account was just changed. Other admin sessions have been signed out.');
-    return { changed: true, accessToken: this.issue(u, row.tv) };
+    return { changed: true, accessToken: this.issue(u, row.tv, cu.sid) };
   }
 
   @Post('email')
@@ -110,9 +113,10 @@ export class AdminAccountController {
       .where(eq(users.id, u.id))
       .returning({ tv: users.tokenVersion });
     forgetSession(u.id);
+    await revokeOtherAdminSessions(u.id, cu.sid ?? null);
     await audit(u.id, 'admin_email_changed', 'user', u.id, `${u.email} → ${newEmail}`);
     await this.mail.sendNotice(u.email, 'Admin email changed', `Your AutoGuide admin sign-in email was changed to ${newEmail}.`);
-    return { changed: true, email: newEmail, accessToken: this.issue({ ...u, email: newEmail }, row.tv) };
+    return { changed: true, email: newEmail, accessToken: this.issue({ ...u, email: newEmail }, row.tv, cu.sid) };
   }
 
   // Move to a new phone / authenticator app: verify the old one, then confirm the new one.
@@ -139,11 +143,34 @@ export class AdminAccountController {
     return { changed: true };
   }
 
+  // Devices currently signed in to the admin panel.
+  @Get('sessions')
+  async sessions(@CurrentUser() cu: JwtUser) {
+    const rows = await listAdminSessions(cu.sub);
+    return rows.map((s) => ({
+      id: s.id,
+      current: s.id === cu.sid,
+      device: describeDevice(s.userAgent),
+      ip: s.ip,
+      location: s.location,
+      createdAt: s.createdAt,
+      lastSeenAt: s.lastSeenAt,
+    }));
+  }
+
+  @Delete('sessions/:id')
+  async endSession(@CurrentUser() cu: JwtUser, @Param('id') id: string) {
+    if (!(await revokeAdminSession(cu.sub, id))) throw new NotFoundException('That session has already ended.');
+    await audit(cu.sub, 'admin_session_revoked', 'session', id);
+    return { signedOut: true, current: id === cu.sid };
+  }
+
   @Post('logout-all')
   @HttpCode(200)
   async logoutAll(@CurrentUser() cu: JwtUser) {
     await db.update(users).set({ tokenVersion: sql`${users.tokenVersion} + 1` }).where(eq(users.id, cu.sub));
     forgetSession(cu.sub);
+    await revokeOtherAdminSessions(cu.sub, null);
     await audit(cu.sub, 'admin_logout_all');
     return { signedOut: true };
   }

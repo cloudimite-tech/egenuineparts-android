@@ -2,9 +2,12 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { JwtService } from '@nestjs/jwt';
 import { and, count, desc, eq, ilike, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
-import { adminAudit, conversations, emailCodes, messages, orders, products, rateLimits, reports, reviews, sellerDocuments, services, serviceTypeRequests, stores, users } from '../db/schema';
+import { adminAudit, conversations, emailCodes, messages, orders, products, rateLimits, reports, reviews, sellerDocuments, services, serviceTypeRequests, stores, users, categoryRequests } from '../db/schema';
 import { audit } from './audit';
 import { forgetSession } from '../security/session-check';
+import { eraseAccount } from '../users/account-deletion';
+import { releaseStaleSignups } from '../auth/unverified-signups';
+import { MailService } from '../mail/mail.service';
 
 type Status = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 const DOC_LINK_TTL = '10m';
@@ -21,7 +24,7 @@ function distanceM(aLat: number, aLng: number, bLat: number, bLng: number) {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(private readonly jwt: JwtService, private readonly mail: MailService) {}
 
   // ---- data retention: verification files aren't kept forever ----
   private lastCleanup = 0;
@@ -44,6 +47,7 @@ export class AdminService {
       await db.delete(sellerDocuments).where(eq(sellerDocuments.ownerId, st.ownerId));
       await db.update(stores).set({ nicFrontDocumentId: null, nicBackDocumentId: null, selfieDocumentId: null, brDocumentId: null }).where(eq(stores.id, st.id));
     }
+    await releaseStaleSignups();
     await db.delete(emailCodes).where(lt(emailCodes.createdAt, days(2)));
     await db.delete(rateLimits).where(lt(rateLimits.windowStart, days(2)));
     await db.delete(adminAudit).where(lt(adminAudit.createdAt, days(365)));
@@ -54,11 +58,12 @@ export class AdminService {
     const [[openReports]] = await Promise.all([db.select({ n: count() }).from(reports).where(eq(reports.status, 'OPEN'))]);
     const byStatus = await db.select({ status: stores.status, n: count() }).from(stores).groupBy(stores.status);
     const byRole = await db.select({ role: users.role, n: count() }).from(users).groupBy(users.role);
-    const [[p], [o], [sv], [sr]] = await Promise.all([
+    const [[p], [o], [sv], [sr], [cr]] = await Promise.all([
       db.select({ n: count() }).from(products).where(eq(products.isActive, true)),
       db.select({ n: count() }).from(orders),
       db.select({ n: count() }).from(services).where(eq(services.isActive, true)),
       db.select({ n: count() }).from(serviceTypeRequests).where(eq(serviceTypeRequests.status, 'PENDING')),
+      db.select({ n: count() }).from(categoryRequests).where(eq(categoryRequests.status, 'PENDING')),
     ]);
     const s = Object.fromEntries(byStatus.map((r) => [r.status, Number(r.n)]));
     const r = Object.fromEntries(byRole.map((x) => [x.role, Number(x.n)]));
@@ -70,6 +75,7 @@ export class AdminService {
       openReports: Number(openReports.n),
       services: Number(sv.n),
       serviceRequests: Number(sr.n),
+      categoryRequests: Number(cr.n),
     };
   }
 
@@ -108,7 +114,7 @@ export class AdminService {
           columns: { id: true, kind: true, fileName: true, mimeType: true, size: true, createdAt: true, capturedLat: true, capturedLng: true },
         })
       : [];
-    // Short-lived, single-document links — work in <Image> and the browser
+    // Short-lived, single-document links - work in <Image> and the browser
     // without exposing the admin's login token.
     const withLink = (id?: string | null) => {
       const d = docs.find((x) => x.id === id);
@@ -153,6 +159,7 @@ export class AdminService {
         addressLine2: owner.addressLine2,
         city: owner.city,
         district: owner.district,
+        postalCode: owner.postalCode,
         createdAt: owner.createdAt,
       },
       document: withLink(store.brDocumentId),
@@ -239,14 +246,15 @@ export class AdminService {
     const u = await db.query.users.findFirst({ where: eq(users.id, id), columns: { id: true, fullName: true, email: true, role: true, bannedAt: true } });
     if (!u) return null;
     const [{ n }] = await db.select({ n: count() }).from(reports).where(eq(reports.targetUserId, id));
-    return { ...u, banned: !!u.bannedAt, timesReported: Number(n) };
+    const store = await db.query.stores.findFirst({ where: eq(stores.ownerId, id), columns: { id: true } });
+    return { ...u, banned: !!u.bannedAt, timesReported: Number(n), hasStore: !!store };
   }
 
   /** A short, human-readable look at the reported thing. */
   private async preview(type: string, id: string): Promise<{ title: string; body?: string | null; storeId?: string; active?: boolean } | null> {
     if (type === 'PRODUCT') {
       const p = await db.query.products.findFirst({ where: eq(products.id, id), with: { store: { columns: { id: true, name: true } } } });
-      return p ? { title: `${p.title} — ${p.store.name}`, body: p.description, storeId: p.store.id, active: p.isActive } : null;
+      return p ? { title: `${p.title} - ${p.store.name}`, body: p.description, storeId: p.store.id, active: p.isActive } : null;
     }
     if (type === 'STORE') {
       const st = await db.query.stores.findFirst({ where: eq(stores.id, id) });
@@ -258,11 +266,15 @@ export class AdminService {
     }
     if (type === 'SERVICE') {
       const sv = await db.query.services.findFirst({ where: eq(services.id, id), with: { store: { columns: { id: true, name: true } } } });
-      return sv ? { title: `${sv.title} — ${sv.store.name}`, body: sv.description, storeId: sv.store.id, active: sv.isActive } : null;
+      return sv ? { title: `${sv.title} - ${sv.store.name}`, body: sv.description, storeId: sv.store.id, active: sv.isActive } : null;
     }
     if (type === 'MESSAGE') {
       const m = await db.query.messages.findFirst({ where: eq(messages.id, id) });
       return m ? { title: 'Chat message', body: m.body, active: true } : null;
+    }
+    if (type === 'USER') {
+      const u = await db.query.users.findFirst({ where: eq(users.id, id), columns: { fullName: true, role: true, city: true, bannedAt: true, createdAt: true } });
+      return u ? { title: `${u.fullName} (${u.role === 'SELLER' ? 'seller' : u.role === 'BUYER' ? 'buyer' : u.role.toLowerCase()})`, body: [u.city, `Joined ${u.createdAt.toISOString().slice(0, 10)}`].filter(Boolean).join(' · '), active: !u.bannedAt } : null;
     }
     if (type === 'CONVERSATION') {
       const last = await db.query.messages.findMany({ where: eq(messages.conversationId, id), orderBy: desc(messages.createdAt), limit: 8 });
@@ -280,7 +292,7 @@ export class AdminService {
       else if (r.targetType === 'SERVICE') await db.update(services).set({ isActive: false }).where(eq(services.id, r.targetId));
       else if (r.targetType === 'REVIEW') await db.delete(reviews).where(eq(reviews.id, r.targetId));
       else if (r.targetType === 'MESSAGE') await db.update(messages).set({ body: 'This message was removed by AutoGuide.', wasFiltered: true }).where(eq(messages.id, r.targetId));
-      else throw new BadRequestException('Nothing to remove for this report — suspend the store or ban the user instead.');
+      else throw new BadRequestException('Nothing to remove for this report - suspend the store or ban the user instead.');
     }
     if (action === 'suspend_store') {
       const ownerStore = r.targetUserId ? await db.query.stores.findFirst({ where: eq(stores.ownerId, r.targetUserId) }) : null;
@@ -331,6 +343,21 @@ export class AdminService {
     }
     await audit(adminId, 'user_ban', 'user', userId, reason);
     return { banned: true };
+  }
+
+  // Permanently deletes a user's account (same erase as "Delete account" in the app).
+  async deleteUser(userId: string, adminId: string, reason: string) {
+    const u = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    if (!u) throw new NotFoundException('User not found.');
+    if (u.id === adminId || u.role === 'ADMIN') throw new BadRequestException('Admin accounts can’t be deleted here.');
+    const label = `${u.fullName} <${u.email}>`;
+    const notify = !u.deletedAt && !!u.emailVerifiedAt ? u.email : null;
+    await eraseAccount(userId, { byAdmin: true });
+    await audit(adminId, 'user_delete', 'user', userId, `${label} - ${reason}`);
+    if (notify) {
+      await this.mail.sendInfo(notify, 'Your AutoGuide account was deleted', `Your AutoGuide account has been deleted by our team. Reason: ${reason} If you think this is a mistake, contact support@monolythcode.com.`).catch(() => {});
+    }
+    return { deleted: true };
   }
 
   async unbanUser(userId: string, adminId: string) {

@@ -17,7 +17,7 @@ export async function processBusinessDocument(buf: Buffer, originalName = 'docum
   if (isPdf(buf)) {
     if (!allowPdf) throw new BadRequestException('Please upload a photo for this step.');
     // Kept as-is (never executed or rendered server-side). Reject PDFs that
-    // carry JavaScript or auto-run actions — a BR certificate never needs them.
+    // carry JavaScript or auto-run actions - a BR certificate never needs them.
     const head = buf.toString('latin1');
     if (/\/(JavaScript|JS|Launch|EmbeddedFile)\b/.test(head)) {
       throw new BadRequestException('This PDF contains scripts or attachments. Please upload a plain scan or photo.');

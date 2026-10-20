@@ -10,7 +10,7 @@ const RATIO = 2249 / 341; // wordmark width / height
 // The AutoGuide logo (mark + wordmark). On dark backgrounds pass `onDark`
 // for the white-lettered version.
 export function Logo({ height = 34, onDark, tagline }: { height?: number; onDark?: boolean; tagline?: string }) {
-  // On a light surface use the dark lettering — unless the whole app is dark.
+  // On a light surface use the dark lettering - unless the whole app is dark.
   const light = onDark ?? themeMode === 'dark';
   return (
     <View>

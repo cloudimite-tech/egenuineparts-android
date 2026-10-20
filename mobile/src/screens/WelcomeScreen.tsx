@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { leaveAuth } from '../navigation/leaveAuth';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +22,7 @@ export function WelcomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main'));
+  const close = () => leaveAuth(navigation);
 
   const onSignIn = async () => {
     setError(null);

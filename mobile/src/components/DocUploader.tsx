@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from './Themed';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -99,12 +99,20 @@ export function DocUploader({ kind, title, hint, value, onChange, error, allowPd
 
   const choose = () => {
     if (selfie) return fromCamera();
-    Alert.alert(title, hint, [
-      { text: 'Take photo', onPress: fromCamera },
-      { text: 'Choose photo', onPress: fromPhotos },
-      ...(allowPdf ? [{ text: 'Choose PDF / file', onPress: fromFiles }] : []),
-      { text: 'Cancel', style: 'cancel' as const },
-    ]);
+    // Android dialogs show at most 3 buttons, so there the PDF option replaces
+    // "Cancel" (tapping outside or Back still cancels).
+    const withCancel = Platform.OS === 'ios' || !allowPdf;
+    Alert.alert(
+      title,
+      hint,
+      [
+        { text: 'Take photo', onPress: fromCamera },
+        { text: 'Choose photo', onPress: fromPhotos },
+        ...(allowPdf ? [{ text: 'Choose PDF / file', onPress: fromFiles }] : []),
+        ...(withCancel ? [{ text: 'Cancel', style: 'cancel' as const }] : []),
+      ],
+      { cancelable: true },
+    );
   };
 
   return (

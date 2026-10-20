@@ -9,7 +9,7 @@ const KEY = 'autoguide_theme';
 interface ThemeState {
   preference: ThemePreference;
   mode: ThemeMode;
-  /** Bumped on every switch — the app root re-renders with this as its key. */
+  /** Bumped on every switch - the app root re-renders with this as its key. */
   version: number;
   hydrated: boolean;
   hydrate: () => Promise<void>;

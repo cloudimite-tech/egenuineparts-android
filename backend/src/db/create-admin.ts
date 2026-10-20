@@ -28,7 +28,7 @@ async function main() {
     await db.insert(users).values({ email, passwordHash, fullName, role: 'ADMIN', emailVerifiedAt: new Date(), termsAcceptedAt: new Date() });
     console.log(`Created admin ${email}.`);
   }
-  console.log('Sign in at https://<your-backend>/admin — the first sign-in sets up your authenticator app.');
+  console.log('Sign in at https://<your-backend>/admin - the first sign-in sets up your authenticator app.');
 }
 
 main()

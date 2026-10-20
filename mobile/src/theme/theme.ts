@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // the theme changes; styles are built lazily through `themed()` so they pick
 // up the new values, and the app re-renders from the root.
 const light = {
-  // brand — AutoGuide logo: red + charcoal. (The `navy*` keys are kept for
+  // brand - AutoGuide logo: red + charcoal. (The `navy*` keys are kept for
   // compatibility; they hold the logo charcoal.)
   accent: '#E5120B',
   accentDark: '#B80D07',

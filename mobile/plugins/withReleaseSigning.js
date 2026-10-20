@@ -16,7 +16,7 @@ module.exports = function withReleaseSigning(config) {
     const credDir = path.join(cfg.modRequest.projectRoot, 'credentials');
     const propsFile = path.join(credDir, 'keystore.properties');
     if (!fs.existsSync(propsFile)) {
-      console.warn('⚠️  withReleaseSigning: credentials/keystore.properties not found — release builds use the DEBUG key (not accepted by Google Play).');
+      console.warn('⚠️  withReleaseSigning: credentials/keystore.properties not found - release builds use the DEBUG key (not accepted by Google Play).');
       return cfg;
     }
     const props = Object.fromEntries(

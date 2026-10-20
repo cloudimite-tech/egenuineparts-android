@@ -203,7 +203,7 @@ export class ProductsService {
         rating: r.rating,
         comment: r.comment,
         createdAt: r.createdAt,
-        // First name + initial only — reviewers aren't identifiable.
+        // First name + initial only - reviewers aren't identifiable.
         author: shortName(r.user.fullName),
       })),
     };
@@ -228,7 +228,7 @@ export class ProductsService {
 
   // The Home screen "highlight" rail: a live flash sale if any seller is
   // running one, otherwise discounted deals, otherwise best sellers /
-  // newest — so the slot is never empty.
+  // newest - so the slot is never empty.
   async highlights(query: ProductQueryDto) {
     const all = await this.list({ make: query.make, model: query.model, year: query.year } as ProductQueryDto);
     const inStock = all.filter((p) => p.stock > 0);
@@ -306,7 +306,7 @@ export class ProductsService {
 
   private validate(dto: CreateProductDto) {
     if (dto.compareAtPrice != null && dto.compareAtPrice <= dto.price) {
-      // A "was" price lower than the price makes no sense — just drop it.
+      // A "was" price lower than the price makes no sense - just drop it.
       dto.compareAtPrice = null;
     }
     if (dto.salePrice != null || dto.saleEndsAt != null) {

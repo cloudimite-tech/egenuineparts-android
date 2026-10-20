@@ -6,7 +6,7 @@ import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { SendMessageDto, StartConversationDto } from './dto/chat.dto';
 
-// Chatting requires a real account (NoGuestGuard) — a guest tapping
+// Chatting requires a real account (NoGuestGuard) - a guest tapping
 // "Chat with seller" is sent to sign in first, same as cart/checkout.
 @Controller('chat')
 @UseGuards(JwtAuthGuard, NoGuestGuard)
@@ -58,7 +58,7 @@ export class ChatController {
     return this.chat.setBlock(user.sub, id, false);
   }
 
-  // REST fallback — same service method as the websocket path, so the
+  // REST fallback - same service method as the websocket path, so the
   // contact-info filter applies identically.
   @Post('conversations/:id/messages')
   async send(@CurrentUser() user: JwtUser, @Param('id') id: string, @Body() dto: SendMessageDto) {

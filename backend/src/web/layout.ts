@@ -16,7 +16,7 @@ button{margin-top:18px;width:100%;padding:14px;border:0;border-radius:12px;backg
 .ok{background:#E7F6EC;color:#16803C;padding:12px;border-radius:10px}.err{background:#FFECEA;color:#B80D07;padding:12px;border-radius:10px}
 a{color:#231F20}
 </style></head><body><header>Auto<span>Guide</span></header><main><div class="card">${body}</div>
-<p class="muted" style="text-align:center">© ${new Date().getFullYear()} AutoGuide · <a href="/terms">Terms of Use</a> · <a href="/privacy">Privacy Policy</a> · <a href="/account/delete">Delete account</a></p></main></body></html>`;
+<p class="muted" style="text-align:center">© ${new Date().getFullYear()} AutoGuide. All rights reserved. Developed by MonolythCode · <a href="/terms">Terms of Use</a> · <a href="/privacy">Privacy Policy</a> · <a href="/account/delete">Delete account</a></p></main></body></html>`;
 }
 
 export const WEB_PAGE_CSP = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'";

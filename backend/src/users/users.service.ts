@@ -43,6 +43,7 @@ export class UsersService {
     if (dto.addressLine2 !== undefined) patch.addressLine2 = dto.addressLine2.trim() || null;
     if (dto.city !== undefined) patch.city = dto.city.trim();
     if (dto.district !== undefined) patch.district = dto.district;
+    if (dto.postalCode !== undefined) patch.postalCode = dto.postalCode.trim();
     if (Object.keys(patch).length) await db.update(users).set(patch).where(eq(users.id, userId));
     return this.me(userId);
   }
@@ -59,7 +60,7 @@ export class UsersService {
       .innerJoin(users, eq(userBlocks.blockedId, users.id))
       .leftJoin(stores, eq(stores.ownerId, users.id))
       .where(eq(userBlocks.blockerId, userId));
-    // Display names only — never contact details.
+    // Display names only - never contact details.
     return rows.map((r) => ({ userId: r.userId, name: r.storeName ?? r.name.split(' ')[0], createdAt: r.createdAt }));
   }
 

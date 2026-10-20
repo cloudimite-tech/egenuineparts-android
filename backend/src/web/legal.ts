@@ -31,7 +31,7 @@ export const TERMS = `
 <h2>8. Ending your account</h2>
 <p>You can delete your account at any time in the app (Account → Delete account) or at <a href="/account/delete">/account/delete</a>. We may suspend accounts that break these terms.</p>
 <h2>9. Changes and contact</h2>
-<p>We may update these terms and will show the new date above. Questions: <a href="mailto:support@autoguide.lk">support@autoguide.lk</a>.</p>`;
+<p>We may update these terms and will show the new date above. Questions: <a href="mailto:support@monolythcode.com">support@monolythcode.com</a>.</p>`;
 
 export const PRIVACY = `
 <h1>Privacy Policy</h1><p class="muted">Last updated ${UPDATED}</p>
@@ -49,7 +49,7 @@ export const PRIVACY = `
 <li>To moderate content, handle reports and keep the service secure.</li>
 <li>To send account emails such as verification and password reset codes. We don’t send marketing without your consent.</li></ul>
 <h2>Who can see it</h2>
-<ul><li>Buyers and sellers see only display names in chat — never each other’s email or phone. A seller sees your delivery address and phone only for orders you place with them.</li>
+<ul><li>Buyers and sellers see only display names in chat - never each other’s email or phone. A seller sees your delivery address and phone only for orders you place with them.</li>
 <li>Seller verification documents are seen only by our verification team, through time-limited links, and every view is logged.</li>
 <li>Service providers who host our data (Vercel, Neon) and send our email act on our instructions. We don’t sell personal data.</li></ul>
 <h2>How long we keep it</h2>
@@ -59,6 +59,6 @@ export const PRIVACY = `
 <h2>Security</h2>
 <p>Data is encrypted in transit (HTTPS) and at rest by our database provider. Passwords are hashed, admin access requires two-step login, and uploaded images are re-encoded to remove hidden data such as GPS tags.</p>
 <h2>Your rights</h2>
-<p>You can view and correct your details in the app (Account → My details & address), delete your account (Account → Delete account, or <a href="/account/delete">/account/delete</a>), and ask us for a copy of your data or to stop processing it by emailing <a href="mailto:support@autoguide.lk">support@autoguide.lk</a>. The service is for people aged 18 and over.</p>
+<p>You can view and correct your details in the app (Account → My details & address), delete your account (Account → Delete account, or <a href="/account/delete">/account/delete</a>), and ask us for a copy of your data or to stop processing it by emailing <a href="mailto:support@monolythcode.com">support@monolythcode.com</a>. The service is for people aged 18 and over.</p>
 <h2>Contact</h2>
-<p>AutoGuide · <a href="mailto:support@autoguide.lk">support@autoguide.lk</a></p>`;
+<p>AutoGuide is developed and operated by MonolythCode · <a href="mailto:support@monolythcode.com">support@monolythcode.com</a></p>`;

@@ -37,6 +37,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
+  const [postalCode, setPostalCode] = useState('');
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [districtOpen, setDistrictOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,6 +51,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
       setAddressLine2(profile.addressLine2 ?? '');
       setCity(profile.city ?? '');
       setDistrict(profile.district ?? '');
+      setPostalCode(profile.postalCode ?? '');
       return;
     }
     // …otherwise whatever was used last time.
@@ -61,6 +63,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
         setAddressLine2(a.addressLine2 ?? '');
         setCity(a.city ?? '');
         setDistrict(a.district ?? '');
+        setPostalCode(a.postalCode ?? '');
         if (a.contactPhone) setPhone(a.contactPhone);
       })
       .catch(() => {});
@@ -83,6 +86,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
     if (addressLine1.trim().length < 3) e.addressLine1 = 'Enter your house number and street.';
     if (city.trim().length < 2) e.city = 'Enter your city.';
     if (!district) e.district = 'Choose your district.';
+    if (!/^\d{5}$/.test(postalCode)) e.postalCode = 'Enter your 5-digit postal code.';
     const digits = phone.replace(/\D/g, '');
     if (digits.length < 9) e.phone = 'Enter a mobile number the courier can call.';
     setErrors(e);
@@ -98,6 +102,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
       addressLine2: addressLine2.trim() || undefined,
       city: city.trim(),
       district,
+      postalCode,
       contactPhone: normalizePhone(phone),
     };
     try {
@@ -140,6 +145,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
               {errors.district ? <Text style={styles.err}>{errors.district}</Text> : null}
             </View>
           </View>
+          <TextField label="Postal code" placeholder="10250" keyboardType="number-pad" maxLength={5} value={postalCode} onChangeText={(t) => setPostalCode(t.replace(/\D/g, '').slice(0, 5))} error={errors.postalCode} />
           <TextField
             label="Mobile number for delivery"
             prefix="+94"
@@ -148,7 +154,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
             value={phone.replace(/^\+94\s?/, '')}
             onChangeText={(v) => setPhone(v)}
             error={errors.phone}
-            hint="Only shared with the seller for this delivery — never shown in chat."
+            hint="Only shared with the seller for this delivery - never shown in chat."
           />
         </Card>
 

@@ -9,6 +9,7 @@ import { MainTabParamList, RootStackParamList } from '../navigation/types';
 import { colors, HEADER_TOP, radius, spacing, themed } from '../theme/theme';
 import { Button } from '../components/Button';
 import { Logo } from '../components/Logo';
+import { Copyright } from '../components/Copyright';
 import { GradientHeader } from '../components/GradientHeader';
 import { useAuthStore } from '../store/authStore';
 import { ThemePreference, useThemeStore } from '../store/themeStore';
@@ -54,6 +55,7 @@ export function AccountScreen({ navigation }: Props) {
           <Text style={styles.sellLinkText}>Want to sell parts? Create a seller account</Text>
           <Ionicons name="chevron-forward" size={14} color={colors.link} />
         </TouchableOpacity>
+        <Copyright />
       </ScrollView>
     );
   }
@@ -135,7 +137,7 @@ export function AccountScreen({ navigation }: Props) {
         ) : null}
         <MenuItem icon="help-buoy-outline" label="Ask the assistant" detail="Find parts, track orders" onPress={() => navigation.navigate('Assistant')} />
         <MenuItem icon="shield-checkmark-outline" label="Buyer protection" detail="Chats & payments stay in-app" onPress={() => Alert.alert('Buyer protection', 'Keep conversations and payments inside AutoGuide. Sellers are verified, and contact details are blocked in chat so every order stays traceable.')} />
-        <MenuItem icon="help-circle-outline" label="Help & support" onPress={() => Alert.alert('Help & support', 'Email support@autoguide.lk and we’ll get back to you within a day.')} last />
+        <MenuItem icon="help-circle-outline" label="Help & support" onPress={() => Alert.alert('Help & support', 'Email support@monolythcode.com and we’ll get back to you within a day.')} last />
       </View>
 
       <AppearanceCard />
@@ -149,6 +151,7 @@ export function AccountScreen({ navigation }: Props) {
         <Text style={styles.logoutText}>Sign out</Text>
       </TouchableOpacity>
       <Text style={styles.email}>{profile?.email}</Text>
+      <Copyright />
     </ScrollView>
   );
 }

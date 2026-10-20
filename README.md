@@ -1,11 +1,11 @@
 # AutoGuide
 
-A mobile marketplace for vehicle spare parts in Sri Lanka — like Daraz/AliExpress,
+A mobile marketplace for vehicle spare parts in Sri Lanka - like Daraz/AliExpress,
 but only auto parts. Verified stores sell, buyers browse by vehicle fitment, and
 every buyer ↔ seller conversation happens inside the app, tied to a specific part.
 
-- `backend/` — NestJS + PostgreSQL (Drizzle ORM) + Socket.IO
-- `mobile/` — Expo / React Native (TypeScript)
+- `backend/` - NestJS + PostgreSQL (Drizzle ORM) + Socket.IO
+- `mobile/` - Expo / React Native (TypeScript)
 
 ---
 
@@ -16,10 +16,10 @@ every buyer ↔ seller conversation happens inside the app, tied to a specific p
 ```bash
 cd backend
 npm install
-docker compose down -v        # only if you ran an older version — wipes just this project's DB
+docker compose down -v        # only if you ran an older version - wipes just this project's DB
 docker compose up -d          # Postgres on localhost:5433 (won't clash with other projects on 5432)
 npm run db:push               # create/upgrade tables
-npm run db:seed               # demo data — WIPES everything incl. real users; demo/dev only
+npm run db:seed               # demo data - WIPES everything incl. real users; demo/dev only
 # on a database with real users, use this instead to refresh categories safely:
 npm run db:categories
 npm run dev                   # API on http://0.0.0.0:3000/api
@@ -44,11 +44,11 @@ it somewhere else (staging/production), set `EXPO_PUBLIC_API_URL=https://…`.
 | Email | Role | What to try |
 |---|---|---|
 | `buyer@slautohub.lk` | Buyer (Kasun) | Has a garage, 2 orders (one delivered → write a review), a chat, a wishlist |
-| `seller@slautohub.lk` | Seller — Colombo Auto Hub | Has an order to ship, unread chat, listings |
-| `kandy@slautohub.lk` | Seller — Kandy Motor Spares | |
-| `lubecentre@slautohub.lk` | Seller — Lanka Lube Centre | |
+| `seller@slautohub.lk` | Seller - Colombo Auto Hub | Has an order to ship, unread chat, listings |
+| `kandy@slautohub.lk` | Seller - Kandy Motor Spares | |
+| `lubecentre@slautohub.lk` | Seller - Lanka Lube Centre | |
 
-Or just open the app — it starts in guest mode, no sign-in needed to browse.
+Or just open the app - it starts in guest mode, no sign-in needed to browse.
 
 ---
 
@@ -56,14 +56,14 @@ Or just open the app — it starts in guest mode, no sign-in needed to browse.
 
 **Home highlights (sale rail)**
 - Sellers can put any listing on a timed **Flash Sale** (sale price + 24h / 3 / 7 / 14 days)
-  from the product form. While it runs, the sale price is used everywhere — listings, cart,
-  checkout — and it reverts automatically when the timer ends.
+  from the product form. While it runs, the sale price is used everywhere - listings, cart,
+  checkout - and it reverts automatically when the timer ends.
 - Home shows an AliExpress-style horizontal rail with a live countdown. If no flash sale is
   running it falls back to **Hot Deals** (discounted "was" prices), then **Top Picks**
-  (best sellers), then **New Arrivals** — so the slot is never empty.
+  (best sellers), then **New Arrivals** - so the slot is never empty.
 
 **Assistant (chatbot)**
-- Robot button on Home (and Account → Ask the assistant). Rule-based — no API key, no cost.
+- Robot button on Home (and Account → Ask the assistant). Rule-based - no API key, no cost.
 - Finds parts from plain language or part numbers ("brake pads for Axio 2016", "90915-10003",
   "wipers"), using your selected vehicle for fitment; tracks your orders; answers delivery,
   payment, returns and selling questions; shows today's deals.
@@ -74,7 +74,7 @@ Or just open the app — it starts in guest mode, no sign-in needed to browse.
 - Home: search (title, brand or part number), category shortcuts, 2-column product grid
   with discount / "Fits" / out-of-stock badges, filter & sort sheet (price, brand, top rated…).
 - **Vehicle fitment**: pick "shopping for" vehicle (garage, popular models, or any
-  make/model/year — works for guests too). Parts known not to fit are hidden, exact fits
+  make/model/year - works for guests too). Parts known not to fit are hidden, exact fits
   float to the top, and product pages say "Fits your Toyota Axio 2016" or warn it may not.
 - Categories: rail + sub-category tiles with part counts, and category search.
 - Product page: photo gallery, rating breakdown, verified-purchase reviews, specs,
@@ -92,20 +92,20 @@ Or just open the app — it starts in guest mode, no sign-in needed to browse.
 - **List a part**: up to 6 photos (camera or library, uploaded to the server), title, brand,
   part number, category, condition, price + "was" price, stock, warranty, description,
   and a fitment list (make / model / year range).
-- My listings: edit, remove (soft-delete — past orders/chats keep working), low-stock flags.
+- My listings: edit, remove (soft-delete - past orders/chats keep working), low-stock flags.
 - Orders: To ship / Shipped / Delivered / Cancelled tabs, delivery address + phone,
   mark shipped → delivered, cancel (restocks automatically).
 
-**Chat — the core rule**
+**Chat - the core rule**
 - Every conversation is pinned to one product ("Chatting about: Ceramic Front Brake Pads").
 - Live over Socket.IO, unread badges on the Messages tab, seller inbox with Buying/Selling filter.
 - **No off-platform contact**: every message (socket or REST) goes through
   `backend/src/common/contact-filter.ts`, which blocks Sri Lankan mobile numbers
   (any formatting, even spelled out), `+94` landlines, emails (incl. "name at gmail dot com"),
   links/domains, WhatsApp/Viber/Telegram/social handles, and "call me / deal directly" phrasing.
-  A blocked message is never stored or delivered — only the sender sees it struck out.
+  A blocked message is never stored or delivered - only the sender sees it struck out.
   Part numbers like `90915-10003` or `04465-12592` are deliberately allowed.
-- Chat payloads never include email, phone or account IDs — sellers see buyers as
+- Chat payloads never include email, phone or account IDs - sellers see buyers as
   "Kasun P.", buyers see the store name.
 - Delivery phone numbers go to the seller **only** on an order, for the courier.
 
@@ -120,8 +120,8 @@ store opening, photo upload, product create/edit/soft-delete) and 8 live-socket 
 
 ## Not built yet
 
-- Online card payments (PayHere / Stripe) — checkout is Cash on delivery only
+- Online card payments (PayHere / Stripe) - checkout is Cash on delivery only
 - Push notifications (new message, order shipped)
 - Admin panel for verifying sellers and moderating listings
-- Photos are stored on the API server's disk (`backend/uploads/`) — move to S3 + CloudFront for production
+- Photos are stored on the API server's disk (`backend/uploads/`) - move to S3 + CloudFront for production
 - Mobile-number OTP login and "Continue with Google"

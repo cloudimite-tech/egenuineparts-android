@@ -14,6 +14,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { StatusPill } from '../../components/StatusPill';
 import { ProductImage } from '../../components/ProductImage';
 import { Button } from '../../components/Button';
+import { ReportSheet, ReportTarget, reportStyles } from '../../components/ReportSheet';
 import { toast } from '../../store/toastStore';
 import { errorMessage } from '../../utils/useRequireAccount';
 import { formatPrice, orderNumber, timeAgo } from '../../utils/format';
@@ -33,6 +34,7 @@ export function SellerOrdersScreen({ navigation }: Props) {
   const [tab, setTab] = useState('ship');
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [report, setReport] = useState<ReportTarget | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -136,6 +138,7 @@ export function SellerOrdersScreen({ navigation }: Props) {
                     <Text style={styles.shipText}>
                       {o.shipping.city}
                       {o.shipping.district ? `, ${o.shipping.district}` : ''}
+                      {o.shipping.postalCode ? ` ${o.shipping.postalCode}` : ''}
                     </Text>
                     {o.shipping.contactPhone ? (
                       <Text style={styles.phone}>
@@ -161,10 +164,20 @@ export function SellerOrdersScreen({ navigation }: Props) {
                   <Button title="Mark as delivered" size="sm" variant="dark" icon="checkmark-done" onPress={() => update(o, 'DELIVERED')} style={{ flex: 1 }} loading={busy === o.id + 'DELIVERED'} />
                 </View>
               ) : null}
+
+              <TouchableOpacity
+                style={reportStyles.link}
+                onPress={() => setReport({ type: 'USER', id: o.buyerId, label: 'buyer', context: `Order ${orderNumber(o.id)}` })}
+                accessibilityLabel={`Report ${o.buyerName}`}
+              >
+                <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+                <Text style={reportStyles.linkText}>Report buyer</Text>
+              </TouchableOpacity>
             </View>
           )}
         />
       )}
+      <ReportSheet target={report} onClose={() => setReport(null)} />
     </View>
   );
 }

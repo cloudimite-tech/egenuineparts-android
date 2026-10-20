@@ -20,6 +20,7 @@ export interface Address {
   addressLine2?: string | null;
   city: string;
   district: string;
+  postalCode?: string | null;
 }
 
 export interface Profile {
@@ -32,6 +33,7 @@ export interface Profile {
   addressLine2?: string | null;
   city?: string | null;
   district?: string | null;
+  postalCode?: string | null;
   sellerStatus: SellerStatus | null;
   emailVerified?: boolean;
   termsAccepted?: boolean;
@@ -309,6 +311,7 @@ export interface Order {
   addressLine2?: string | null;
   city: string;
   district?: string | null;
+  postalCode?: string | null;
   contactPhone?: string | null;
   paymentMethod: string;
   createdAt: string;
@@ -318,8 +321,9 @@ export interface Order {
 export interface SellerOrder {
   id: string;
   createdAt: string;
+  buyerId: string;
   buyerName: string;
-  shipping: { addressLine1: string; addressLine2?: string | null; city: string; district?: string | null; contactPhone?: string | null };
+  shipping: { addressLine1: string; addressLine2?: string | null; city: string; district?: string | null; postalCode?: string | null; contactPhone?: string | null };
   paymentMethod: string;
   status: FulfillmentStatus;
   subtotal: number;

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import { Text } from '../components/Themed';
-import { DarkTheme, DefaultTheme, LinkingOptions, NavigationContainer, NavigationState } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, LinkingOptions, NavigationContainer, NavigationState, useNavigationContainerRef } from '@react-navigation/native';
 import { Appearance } from 'react-native';
 import { useThemeStore } from '../store/themeStore';
 import { SERVER_ORIGIN } from '../api/config';
@@ -60,8 +60,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // Shared links open straight in the app: autoguide://p/<id> (from the
 // share page's "Open in the app" button) and https://…/p/<id> (App Links).
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ['autoguide://', SERVER_ORIGIN, 'https://autoguide.lk', 'https://www.autoguide.lk'],
+  prefixes: ['autoguide://', SERVER_ORIGIN],
   config: {
+    // Links open on top of the main tabs, so "back" always has somewhere to go.
+    initialRouteName: 'Main',
     screens: {
       ProductDetail: 'p/:productId',
       StoreProfile: 's/:storeIdOrSlug',
@@ -76,9 +78,10 @@ const navThemeFor = (mode: 'light' | 'dark') => {
 };
 
 // Keeps per-account state (cart, wishlist, unread chats, live socket) in
-// step with whoever is signed in — and wipes it on sign-out.
+// step with whoever is signed in - and wipes it on sign-out.
 function SessionSync() {
   const { token, isGuest } = useAuthStore();
+  const realtime = useConfigStore((s) => s.realtime);
   useEffect(() => {
     if (!token || isGuest) {
       disconnectChatSocket();
@@ -91,6 +94,22 @@ function SessionSync() {
     useWishlistStore.getState().refresh().catch(() => {});
     useChatStore.getState().refreshUnread().catch(() => {});
 
+    if (!realtime) {
+      // No live socket (Vercel): check the unread count once a minute while the
+      // app is open, and refresh open inboxes when it changes. Paused in background.
+      disconnectChatSocket();
+      const tick = () => {
+        if (AppState.currentState !== 'active') return;
+        const before = useChatStore.getState().unread;
+        useChatStore.getState().refreshUnread().then(() => {
+          if (useChatStore.getState().unread !== before) useChatStore.getState().bumpInbox();
+        }).catch(() => {});
+      };
+      const timer = setInterval(tick, 60000);
+      const sub = AppState.addEventListener('change', (st) => { if (st === 'active') tick(); });
+      return () => { clearInterval(timer); sub.remove(); };
+    }
+
     const socket = connectChatSocket(token);
     const onInbox = () => {
       useChatStore.getState().refreshUnread().catch(() => {});
@@ -100,7 +119,7 @@ function SessionSync() {
     return () => {
       socket.off('inbox_updated', onInbox);
     };
-  }, [token, isGuest]);
+  }, [token, isGuest, realtime]);
   return null;
 }
 
@@ -116,7 +135,7 @@ function useSellerGate(): 'open' | 'locked' | 'unknown' {
   // Celebrate the moment an admin approves the store.
   const prev = React.useRef(status);
   useEffect(() => {
-    if (prev.current && prev.current !== 'APPROVED' && status === 'APPROVED') toast.success('Your store is approved — welcome aboard!');
+    if (prev.current && prev.current !== 'APPROVED' && status === 'APPROVED') toast.success('Your store is approved - welcome aboard!');
     prev.current = status;
   }, [status]);
   return gate;
@@ -149,6 +168,20 @@ export function RootNavigator() {
   const { mode, version, hydrated: themeReady } = useThemeStore();
   // Keep the user on the same screen when the theme switches (the tree remounts).
   const navState = React.useRef<NavigationState | undefined>(undefined);
+  const navRef = useNavigationContainerRef<RootStackParamList>();
+
+  // An unapproved seller gets a different set of screens (Seller Centre). When
+  // that switches - signing in, signing out, getting approved - start the new
+  // set from its first screen. Otherwise a screen that exists in both sets
+  // (Seller Centre) stays open with nothing behind it.
+  const group = sellerGate === 'locked' ? 'gate' : 'app';
+  const prevGroup = React.useRef(group);
+  useEffect(() => {
+    if (prevGroup.current === group) return;
+    prevGroup.current = group;
+    navState.current = undefined;
+    if (navRef.isReady()) navRef.reset({ index: 0, routes: [{ name: group === 'gate' ? 'SellerGate' : 'Main' }] });
+  }, [group, navRef]);
 
   useEffect(() => {
     useThemeStore.getState().hydrate();
@@ -174,6 +207,7 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer
+      ref={navRef}
       key={`theme-${version}`}
       theme={navThemeFor(mode)}
       linking={navState.current ? { ...linking, getInitialURL: () => null } : linking}
@@ -181,7 +215,7 @@ export function RootNavigator() {
       onStateChange={(st) => (navState.current = st)}
     >
       <SessionSync />
-      {/* Opens straight into browsing — sign-in is only asked for when needed. */}
+      {/* Opens straight into browsing - sign-in is only asked for when needed. */}
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         {sellerGate === 'locked' ? (
           <>

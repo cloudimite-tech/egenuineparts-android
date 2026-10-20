@@ -52,7 +52,7 @@ export function MessagesScreen({ navigation }: Props) {
         <EmptyState
           icon="chatbubbles-outline"
           title="Chat with sellers"
-          message="Ask about fitment, stock or warranty on any part — privately, right inside the app."
+          message="Ask about fitment, stock or warranty on any part - privately, right inside the app."
           actionLabel="Sign in to chat"
           onAction={() => navigation.navigate('Welcome')}
         />

@@ -19,7 +19,7 @@ export class RegisterDto {
   @MinLength(8)
   password: string;
 
-  // Admins are never self-registered — see `npm run admin:create`.
+  // Admins are never self-registered - see `npm run admin:create`.
   @IsOptional()
   @IsIn(['BUYER', 'SELLER'])
   role?: 'BUYER' | 'SELLER';
@@ -27,6 +27,8 @@ export class RegisterDto {
   @IsString() @MinLength(3) @MaxLength(255) addressLine1: string;
   @IsOptional() @IsString() @MaxLength(255) addressLine2?: string;
   @IsString() @MinLength(2) @MaxLength(100) city: string;
+  // Sri Lankan postal codes are 5 digits (e.g. 10250).
+  @IsString() @Matches(/^\d{5}$/, { message: 'Enter your 5-digit postal code.' }) postalCode: string;
   @IsIn(SRI_LANKA_DISTRICTS, { message: 'Choose a valid district.' }) district: string;
 
   // Google Play requires users to accept the Terms of Use before using chat, listings and reviews.

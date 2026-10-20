@@ -29,7 +29,7 @@ function throttle(userId: string) {
   const now = Date.now();
   const hits = (recent.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
   if (hits.length >= MAX_PER_WINDOW) {
-    throw new HttpException('Too many uploads — please try again later.', HttpStatus.TOO_MANY_REQUESTS);
+    throw new HttpException('Too many uploads - please try again later.', HttpStatus.TOO_MANY_REQUESTS);
   }
   hits.push(now);
   recent.set(userId, hits);
@@ -41,7 +41,7 @@ export class UploadsController {
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
-      // Keep the raw upload in memory only — it's never written to disk as-is.
+      // Keep the raw upload in memory only - it's never written to disk as-is.
       storage: memoryStorage(),
       limits: { fileSize: 15 * 1024 * 1024, files: 1 },
     }),
@@ -50,7 +50,7 @@ export class UploadsController {
     if (!file?.buffer?.length) throw new BadRequestException('No file received.');
     throttle(user.sub);
     const clean = await processProductImage(file.buffer);
-    // Server-chosen random name — never the client's filename.
+    // Server-chosen random name - never the client's filename.
     const name = `${createId()}.jpg`;
     // On Vercel (or anywhere BLOB_READ_WRITE_TOKEN is set) photos go to Vercel
     // Blob storage, because serverless functions have no persistent disk.

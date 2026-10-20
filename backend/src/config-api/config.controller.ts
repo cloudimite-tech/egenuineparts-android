@@ -14,6 +14,10 @@ export class AppConfigController {
       rateSource: rateInfo().source,
       rateUpdatedAt: rateInfo().updatedAt,
       deliveryFeePerSeller: DELIVERY_FEE_PER_SELLER,
+      // Vercel functions can't hold WebSocket connections, so the app uses
+      // REST + light polling for chat there instead of retrying a socket forever.
+      // CHAT_REALTIME=off forces the Vercel behaviour locally (for testing).
+      realtime: process.env.CHAT_REALTIME ? process.env.CHAT_REALTIME !== 'off' : !process.env.VERCEL,
     };
   }
 }

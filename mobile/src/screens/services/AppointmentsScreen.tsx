@@ -14,6 +14,7 @@ import { SheetModal } from '../../components/SheetModal';
 import { TextField } from '../../components/TextField';
 import { Button } from '../../components/Button';
 import { ProductImage } from '../../components/ProductImage';
+import { ReportSheet, ReportTarget } from '../../components/ReportSheet';
 import { useAuthStore } from '../../store/authStore';
 import { toast } from '../../store/toastStore';
 import { errorMessage } from '../../utils/useRequireAccount';
@@ -24,7 +25,7 @@ type Action = 'accept' | 'decline' | 'complete' | 'cancel';
 
 const ACTION_COPY: Record<Action, { title: string; button: string; placeholder: string; chips?: string[]; required?: boolean; done: string }> = {
   accept: { title: 'Accept appointment', button: 'Accept', placeholder: 'Anything the customer should know? (optional)', chips: ['See you then!', 'Please bring the service book.', 'Please arrive 10 minutes early.'], done: 'Appointment accepted. The customer has been told.' },
-  decline: { title: 'Decline appointment', button: 'Decline', placeholder: 'Let the customer know why, or suggest another time', chips: ['Fully booked that day — please pick another day.', 'We can do the next morning instead.', 'We don’t do this type of work.'], required: true, done: 'Appointment declined.' },
+  decline: { title: 'Decline appointment', button: 'Decline', placeholder: 'Let the customer know why, or suggest another time', chips: ['Fully booked that day - please pick another day.', 'We can do the next morning instead.', 'We don’t do this type of work.'], required: true, done: 'Appointment declined.' },
   complete: { title: 'Mark as completed', button: 'Mark completed', placeholder: 'Note (optional)', done: 'Marked as completed.' },
   cancel: { title: 'Cancel appointment', button: 'Cancel appointment', placeholder: 'Reason (optional)', done: 'Appointment cancelled.' },
 };
@@ -38,6 +39,7 @@ export function AppointmentsScreen({ route, navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [sheet, setSheet] = useState<{ a: Appointment; action: Action } | null>(null);
   const [note, setNote] = useState('');
+  const [report, setReport] = useState<ReportTarget | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(() => {
@@ -173,6 +175,20 @@ export function AppointmentsScreen({ route, navigation }: Props) {
                       <Text style={styles.chatText}>Chat</Text>
                     </TouchableOpacity>
                   ) : null}
+                  <TouchableOpacity
+                    style={styles.chatBtn}
+                    hitSlop={6}
+                    accessibilityLabel={a.viewerIsSeller ? 'Report customer' : 'Report provider'}
+                    onPress={() =>
+                      setReport(
+                        a.viewerIsSeller
+                          ? { type: 'USER', id: a.buyer.id, label: 'customer', context: `Appointment · ${a.service.title}` }
+                          : { type: 'STORE', id: a.store.id, label: 'provider', context: `Appointment · ${a.service.title}` },
+                      )
+                    }
+                  >
+                    <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
+                  </TouchableOpacity>
                   <View style={{ flex: 1 }} />
                   {a.viewerIsSeller && a.status === 'REQUESTED' && !a.expired ? (
                     <>
@@ -233,6 +249,7 @@ export function AppointmentsScreen({ route, navigation }: Props) {
           </>
         ) : null}
       </SheetModal>
+      <ReportSheet target={report} onClose={() => setReport(null)} />
     </View>
   );
 }

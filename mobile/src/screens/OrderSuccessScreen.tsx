@@ -1,4 +1,5 @@
 import React from 'react';
+import { goBackOr } from '../navigation/goBackOr';
 import { StyleSheet, View } from 'react-native';
 import { Text } from '../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +29,7 @@ export function OrderSuccessScreen({ route, navigation }: Props) {
         <Step icon="star-outline" text="Rate your parts once delivered" />
       </View>
       <Button title="View order" onPress={() => navigation.replace('OrderDetail', { orderId })} style={{ alignSelf: 'stretch' }} />
-      <Button title="Continue shopping" variant="ghost" onPress={() => navigation.goBack()} style={{ alignSelf: 'stretch', marginTop: 6 }} />
+      <Button title="Continue shopping" variant="ghost" onPress={() => goBackOr(navigation)} style={{ alignSelf: 'stretch', marginTop: 6 }} />
     </View>
   );
 }

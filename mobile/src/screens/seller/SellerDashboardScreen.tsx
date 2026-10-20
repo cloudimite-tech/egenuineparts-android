@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { goBackOr } from '../../navigation/goBackOr';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,7 +41,7 @@ export function SellerDashboardScreen({ navigation }: Props) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <Header title="Seller Centre" back />
-        <EmptyState icon="storefront-outline" title="Store not available" message="Your store isn’t active right now. Pull down on the Account tab to refresh, or contact support." actionLabel="Back" onAction={() => navigation.goBack()} />
+        <EmptyState icon="storefront-outline" title="Store not available" message="Your store isn’t active right now. Pull down on the Account tab to refresh, or contact support." actionLabel="Back" onAction={() => goBackOr(navigation)} />
       </View>
     );
   }
@@ -121,7 +122,7 @@ export function SellerDashboardScreen({ navigation }: Props) {
           <View style={styles.tip}>
             <Ionicons name="bulb-outline" size={20} color={colors.info} />
             <Text style={styles.tipText}>
-              Listings with clear photos, a part number and a fitment list show up for buyers who’ve saved that vehicle — and get a green “Fits” badge.
+              Listings with clear photos, a part number and a fitment list show up for buyers who’ve saved that vehicle - and get a green “Fits” badge.
             </Text>
           </View>
         </ScrollView>

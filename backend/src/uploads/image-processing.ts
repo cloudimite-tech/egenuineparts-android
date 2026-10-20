@@ -1,12 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import sharp from 'sharp';
 
-// Every uploaded photo is decoded and re-encoded from scratch — the same
+// Every uploaded photo is decoded and re-encoded from scratch - the same
 // idea big platforms use:
 //  • proves it's a real image (sharp rejects anything it can't decode,
 //    whatever the filename or claimed content-type says)
-//  • strips ALL metadata — EXIF, GPS location, camera serials, embedded
-//    thumbnails — because we never call .withMetadata()
+//  • strips ALL metadata - EXIF, GPS location, camera serials, embedded
+//    thumbnails - because we never call .withMetadata()
 //  • discards anything smuggled in the file (scripts, trailing payloads),
 //    since only decoded pixels are written back out
 //  • bakes in phone rotation, caps size, and normalises to JPEG
@@ -27,7 +27,7 @@ export async function processProductImage(input: Buffer): Promise<Buffer> {
     throw new BadRequestException('Only JPEG, PNG, WebP or HEIC photos are allowed.');
   }
   if ((meta.width ?? 0) < MIN_EDGE || (meta.height ?? 0) < MIN_EDGE) {
-    throw new BadRequestException(`Photo is too small — use at least ${MIN_EDGE}×${MIN_EDGE} pixels.`);
+    throw new BadRequestException(`Photo is too small - use at least ${MIN_EDGE}×${MIN_EDGE} pixels.`);
   }
   try {
     return await img

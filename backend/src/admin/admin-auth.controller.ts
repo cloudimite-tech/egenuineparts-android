@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
 import { audit } from './audit';
+import { ADMIN_SESSION_HOURS, createAdminSession, revokeAdminSession } from '../security/admin-sessions';
 
 class AdminLoginDto {
   @IsEmail() email: string;
@@ -26,7 +27,7 @@ class ConfirmDto {
   @IsString() @Matches(/^\d{6}$/, { message: 'Enter the 6-digit code from your authenticator app.' }) code: string;
 }
 
-const SESSION_HOURS = 8;
+const SESSION_HOURS = ADMIN_SESSION_HOURS;
 
 // Web admin panel sign-in: password + authenticator-app code (2-step).
 // The first sign-in walks the admin through setting up the authenticator.
@@ -34,9 +35,10 @@ const SESSION_HOURS = 8;
 export class AdminAuthController {
   constructor(private readonly jwt: JwtService) {}
 
-  private issue(user: typeof users.$inferSelect) {
+  private async issue(user: typeof users.$inferSelect, req: any) {
+    const sid = await createAdminSession(user.id, req);
     return {
-      accessToken: this.jwt.sign({ sub: user.id, role: 'ADMIN', email: user.email, tv: user.tokenVersion, aud: 'admin' }, { expiresIn: `${SESSION_HOURS}h` }),
+      accessToken: this.jwt.sign({ sub: user.id, role: 'ADMIN', email: user.email, tv: user.tokenVersion, aud: 'admin', sid }, { expiresIn: `${SESSION_HOURS}h` }),
       admin: { id: user.id, email: user.email, fullName: user.fullName },
       expiresInHours: SESSION_HOURS,
     };
@@ -68,7 +70,7 @@ export class AdminAuthController {
     }
     await clear(`admin-fail:${email}`);
     await audit(user.id, 'admin_login');
-    return this.issue(user);
+    return this.issue(user, req);
   }
 
   private async setupUser(token: string) {
@@ -96,13 +98,23 @@ export class AdminAuthController {
 
   @Post('2fa/confirm')
   @HttpCode(200)
-  async confirm(@Body() dto: ConfirmDto) {
+  async confirm(@Body() dto: ConfirmDto, @Req() req: any) {
     const user = await this.setupUser(dto.setupToken);
     if (!user.totpSecret || !verifyTotp(user.totpSecret, dto.code)) throw new UnauthorizedException('That code isn’t right. Check the time on your phone and try again.');
     await db.update(users).set({ totpEnabledAt: new Date() }).where(eq(users.id, user.id));
     await audit(user.id, 'admin_2fa_enabled');
     await audit(user.id, 'admin_login');
-    return this.issue({ ...user, totpEnabledAt: new Date() });
+    return this.issue({ ...user, totpEnabledAt: new Date() }, req);
+  }
+
+  // Sign out this device only.
+  @Post('logout')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async logout(@CurrentUser() u: JwtUser) {
+    if (u.sid) await revokeAdminSession(u.sub, u.sid);
+    await audit(u.sub, 'admin_logout');
+    return { signedOut: true };
   }
 
   @Get('me')

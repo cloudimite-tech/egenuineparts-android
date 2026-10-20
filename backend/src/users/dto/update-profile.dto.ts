@@ -8,4 +8,5 @@ export class UpdateProfileDto {
   @IsOptional() @IsString() @MaxLength(255) addressLine2?: string;
   @IsOptional() @IsString() @MinLength(2) @MaxLength(100) city?: string;
   @IsOptional() @IsIn(SRI_LANKA_DISTRICTS, { message: 'Choose a valid district.' }) district?: string;
+  @IsOptional() @IsString() @Matches(/^\d{5}$/, { message: 'Enter your 5-digit postal code.' }) postalCode?: string;
 }
